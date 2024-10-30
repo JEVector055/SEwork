@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player with Comments</title>
+    {% block style %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .source-video-container {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .upload-form {
+            margin-top: 20px;
+            text-align: center;
+        }
+        h2 {
+            font-size: 1.2em;
+        }
+        p {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+    </style>
+    {% endblock style %}
+</head>
+<body>
+    <!-- 网页头与标题：这里补充UI -->
+    {% block title %}
+    {% endblock title %}
+
+    <!-- 源视频 -->
+    <div class="source-video-container">
+
+        <p>当前未上传视频.</p>
+        <!-- 上传视频 -->
+        {% block tipofupload %}<!--上传组件UI优化(这里补充UI需要在原模块基础上修改)-->
+        <h2>上传新的源视频</h2>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">上传</button>
+        </form>
+        {% endblock tipofupload %}
+
+    </div>
+
+    <!-- 底部：这里补充UI -->
+    {% block bottom %}
+    {% endblock bottom %}
+</body>
+</html>

@@ -1,0 +1,10 @@
+
+# 忽略的文件夹
+__pycache__/
+migrations/
+media/
+migrations/*.py
+/*.html
+/*.js
+# 忽略文件
+db.sqlite3

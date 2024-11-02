@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="https://cdn.staticfile.net/font-awesome/4.7.0/css/font-awesome.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&display=swap"
+          rel="stylesheet">
+
+    <style>
+
+        @font-face {
+            font-family: 'MyCustomFont'; /* 为字体定义一个名称，在CSS中引用时使用 */
+            src: url('simsun.ttc') format('truetype'); /* 字体文件的路径和格式 */
+            font-weight: normal; /* 字体的粗细，normal, bold, 100, 200, ..., 900 */
+            font-style: normal;  /* 字体的样式，normal 或 italic */
+        }
+
+        body {
+
+            font-family: Arial, sans-serif;
+            background-color: #E8EDF7; /*#f0f0f0;#E8EDF7*/
+            display: flex;
+            flex-direction: column; /* 修改为列方向布局以容纳新标题 */
+
+            background-image: url("templates/webuicore/bg8.jpg");
+            background-repeat: no-repeat;
+
+            background-position: center;
+        {% comment %} overflow: hidden;
+        background-size: cover; {% endcomment %}
+
+
+        }
+
+        .t h1 { /* 添加大标题样式 */
+            margin: 0; /* 可根据需要调整顶部间距 */
+            color: #C3C3C3; /* 可根据需要调整颜色 */
+            padding-top: 4px;
+            padding-bottom: 4px;
+            padding-left: 4px;
+            text-align: center;
+
+            background-color: #1C4591;
+            border-radius: 10px 10px 0 0;
+
+            font-family: 'Ma Shan Zheng', cursive; /*标题字体样式*/
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        .container {
+            width: 380px;
+            margin: 10% auto;
+            border-radius: 25px;
+            background-color: rgba(192, 192, 192, 0.7);
+            box-shadow: 0 0 17px #333;
+
+
+        }
+
+        .header {
+            text-align: center;
+            padding-top: 70px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 45px;
+            margin-bottom: 75px;
+        }
+
+        .main {
+            text-align: center;
+        }
+
+        .main input, button {
+            width: 300px;
+            height: 40px;
+            border: none;
+            outline: none;
+            padding-left: 40px;
+            box-sizing: border-box;
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .main button {
+            padding-left: 0;
+            justify-content: center; /* 水平居中 */
+            text-align: center; /* 确保文本在按钮内居中 */
+            background-color: #83acf1;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            cursor: pointer;
+        }
+
+        .main button:hover {
+            box-shadow: 2px 2px 5px #555;
+            background-color: #7799d4;
+
+        }
+
+        .main span {
+            position: relative;
+        }
+
+        .main i {
+            position: absolute;
+            left: 15px;
+            color: #333;
+            font-size: 20px;
+            top: 0px;
+        }
+
+        .main p {
+
+            position: relative;
+        }
+
+        .pilot {
+            position: fixed;
+            height: 6rem;
+            width: 100%;
+            right: 0;
+            top: 0;
+            z-index: 999;
+        / / 一直将导航栏置于最顶层
+
+        }
+
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding-top: 0;
+            overflow: hidden;
+            background-color: #1C4591; /*#5374AD;*/
+            border-radius: 0 0 10px 10px;
+
+        }
+
+        li {
+            float: right;
+        }
+
+        li a {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        li a:hover {
+            background-color: #7799d4;
+        }
+
+
+    </style>
+</head>
+<body>
+<div class="pilot">
+    <div class="t">
+        <h1>基于视觉语言大模型的视频监控管理系统</h1>
+    </div>
+    <ul>
+        <li><a href="#about">关于</a></li>
+        <li><a href="#contact">联系</a></li>
+        <li><a class="active" href="#home">主页</a></li>
+    </ul>
+</div>
+<div class="container">
+    <div class="header">
+        <h1>Login</h1>
+    </div>
+    <div class="main">
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <span>
+                    <i class="fa fa-user"></i>
+                    <input type="text" name="username" placeholder="Username" required>
+                </span><br>
+            <span>
+                    <i class="fa fa-lock"></i>
+                    <input type="password" name="password" placeholder="Password" required>
+                </span><br>
+            <button type="submit">Login</button>
+            <p>Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
+        </form>
+    </div>
+</div>
+</div>
+
+
+</body>
+</html>

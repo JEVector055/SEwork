@@ -1,7 +1,7 @@
-from django.db import models
-# myapp/models.py
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+
 class VideoClip(models.Model):
     """
     视频剪辑模型，用于存储视频剪辑的相关信息。
@@ -16,6 +16,7 @@ class VideoClip(models.Model):
         """
         return self.title
 
+
 class ClipComment(models.Model):
     """
     视频剪辑评论模型，用于存储与视频剪辑相关的评论。
@@ -29,6 +30,7 @@ class ClipComment(models.Model):
         返回评论所属视频剪辑的标题，以便在交互界面中更容易识别对象。
         """
         return f"Comment for {self.video.title}"
+
 
 class SourceVideo(models.Model):
     """
@@ -45,17 +47,13 @@ class SourceVideo(models.Model):
         return f"Source Video: {self.title}"
 
 
-from django.contrib.auth.models import AbstractUser
-from django.db import models
-
 class User(AbstractUser):
-    # 你可以在这里添加额外的字段
-    pass
+    # 添加额外字段（如需要）
+    # phone_number = models.CharField(max_length=15, blank=True)
 
     class Meta:
-        db_table = 'webuicore_user'  # 如果你需要自定义表名
+        db_table = 'webuicore_user'  # 自定义表名
 
-    # 重新定义 groups 和 user_permissions 字段，设置 related_name
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name='groups',

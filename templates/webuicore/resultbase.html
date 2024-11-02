@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Player with Comments</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
+    <title>视频异常检测展示界面</title>
+    <meta name="author" content="丁宗参">
     {% block style %}
     <style>
         body {
@@ -19,13 +21,15 @@
             position: fixed;
             top: 0;
             left: 0;
-            background-color: #f4f4f4;
+            background-color: #1C4591;
             padding: 20px;
             box-sizing: border-box;
             overflow-y: auto;
         }
-        .sidebar h3 {
+        .sidebar h2 {
             margin-top: 0;
+            font-family: 'Ma Shan Zheng', cursive;
+            color: #C3C3C3;
         }
         .sidebar ul {
             list-style-type: none;
@@ -37,7 +41,11 @@
         }
         .sidebar a {
             text-decoration: none;
-            color: #333;
+            display: block;
+            color: white;
+        }
+        .sidebar a:hover {
+            background-color: #7799d4;
         }
         .content {
             margin-left: 220px;
@@ -77,6 +85,7 @@
             cursor: pointer;
             text-align: center;
         }
+        
         .comment-container {
             width: 50%;
             padding-left: 10px;
@@ -99,6 +108,15 @@
             flex-direction: column;
             align-items: center;
             margin-bottom: 20px;
+            margin-top: 20px;
+        }
+        .video-and-button-container button{
+            width: 489px; /* button宽度 */
+        }
+        .video-and-button-container button:hover{
+            
+            background-color: #7799d4;
+
         }
         .anomaly-detection-button {
             width: 80%;
@@ -110,23 +128,28 @@
             cursor: pointer;
             text-align: center;
         }
+        
         .videoclips-container {
             margin-top: 20px; /* 上边距 */
-            padding: 40px; /* 内边距 */
+            padding: 20px; /* 内边距 */
             /*border-top: 1px solid #ccc; /* 上边框 */
-            background-color: rgb(0, 255, 255); /* 浅灰色背景
+            {% comment %} background-color: rgb(0, 255, 255); /* 浅灰色背景 {% endcomment %}
+            background-color: rgba(153, 217, 234, 0.5); /* 使用透明度背景 */
+            border: 1px solid #ccc; /* 添加边框 */
         }
 
         .videoclip-item {
             margin-bottom: 10px;
             cursor: pointer;
+            
         }
+        
     </style>
     {% endblock style %}
 </head>
 <body>
     <div class="sidebar">
-        <h3>视频管理列表</h3>
+        <h2>视频管理列表</h2>
         <ul id="file-list">
             <!-- 文件列表将通过JavaScript动态生成 -->
         </ul>
@@ -145,6 +168,8 @@
                     <source src="{{ svideo.SourceVideo_file.url }}" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
+{#                <h2>{{ svideo.SourceVideo_file.url }}</h2>#}
+                <input type="hidden" id="video-url" value="{{ svideo.SourceVideo_file.url }}">
             </div>
             <!-- 异常检测按钮 -->
             <button class="anomaly-detection-button">异常检测</button>
@@ -197,6 +222,8 @@
         {% endblock bottom %}
     </div>
 </body>
+<!-- HTML部分 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     // 当文档内容加载完成后，执行指定函数
     document.addEventListener('DOMContentLoaded', function() {
@@ -244,7 +271,12 @@
             })
             .catch(error => console.error('Error fetching files:', error)); // 捕获并打印错误
     });
-
+    function playVideo(videoUrl) {
+        const videoPlayer = document.getElementById('source-video');
+        videoPlayer.src = videoUrl;  // 设置主视频播放器的源
+        videoPlayer.load();           // 重新加载视频
+        videoPlayer.play();           // 播放视频
+    }
     // 为具有ID的按钮添加点击事件监听器
     $('button[id]').on('click', function() {
         // 获取被点击按钮的ID
@@ -256,7 +288,26 @@
     // 添加异常检测按钮的点击事件
     $('.anomaly-detection-button').on('click', function() {
         // 弹出警告框提示按钮被点击
-        alert('异常检测按钮被点击');
+        {#alert('异常检测按钮被点击');#}
+        var videoUrl = document.getElementById('video-url').value;
+        // 发送POST请求到服务器，传递视频URL
+        fetch('/execute-anomaly-detection/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ video_url: videoUrl })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 处理服务器返回的数据
+            console.log(data);
+        })
+        .catch(error => {
+            // 处理错误
+            console.error('Error:', error);
+        });
+        
         // 这里可以添加更多的逻辑，例如发送请求等
     });
 </script>

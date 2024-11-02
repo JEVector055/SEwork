@@ -6,5 +6,6 @@ media/
 migrations/*.py
 /*.html
 /*.js
+/.idea
 # 忽略文件
 db.sqlite3

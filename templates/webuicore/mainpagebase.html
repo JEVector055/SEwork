@@ -2,62 +2,258 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Video Player with Comments</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&display=swap"
+          rel="stylesheet">
     {% block style %}
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
+            background-color: #E8EDF7; /* 背景颜色 */
             display: flex;
             flex-direction: column;
-        }
-        .source-video-container {
-            width: 100%;
-            padding: 20px;
-            box-sizing: border-box;
-            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-image: url("../static/bg1.jpg");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: cover;
         }
 
-        .upload-form {
-            margin-top: 20px;
+        .t h1 { /* 添加大标题样式 */
+            margin: 0; /* 可根据需要调整顶部间距 */
+            color: #C3C3C3; /* 可根据需要调整颜色 */
+            padding-top: 20px;
+            padding-bottom: 4px;
+            padding-left: 4px;
             text-align: center;
+
+            background-color: #1C4591;
+            border-radius: 10px 10px 0 0;
+
+            font-family: 'Ma Shan Zheng', cursive; /*标题字体样式*/
+            font-weight: 400;
+            font-style: normal;
         }
+
+        .pilot {
+            position: fixed;
+            height: 6rem;
+            width: 100%;
+            right: 0;
+            top: 0;
+            z-index: 999;
+        }
+
+        ul {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #1C4591;
+            border-radius: 0 0 2px 2px;
+        }
+
+        li {
+            float: right;
+        }
+
+        li a {
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+
+        li a:hover {
+            background-color: #7799d4;
+        }
+
+        .source-video-container {
+            width: 60%; /* 更改宽度以适应页面 */
+            margin: 200px auto; /* 上方留出空间以避免遮挡导航栏 */
+            padding: 20px;
+            background-color: rgba(192, 192, 192, 0.7);
+            border-radius: 15px; /* 边角圆润 */
+            box-shadow: 0 0 17px #333;
+            text-align: center;
+            max-width: 800px;
+        }
+
+
+        input {
+            box-sizing: border-box;
+
+        }
+
+        .custom-title-input, .custom-datetime-input {
+            padding: 4px;
+            border-radius: 8px;
+            margin: 0;
+            width: 100%;
+            box-sizing: border-box;
+            width: auto;
+            border: 2px solid #ccc;
+            text-align: left;
+        }
+
+        .custom-file-input, .custom-title-input {
+            margin-bottom: 20px;
+        }
+
+        .custom-title-input:focus, .custom-datetime-input:focus {
+            border: 2px solid #4e5bff; /* 设置选中时的边框颜色 */
+            box-shadow: 0 0 5px rgba(78, 91, 255, 0.5); /* 内阴影效果 */
+            outline: none; /* 去除默认的轮廓线 */
+        }
+
+        /* 时间选择器样式：使其与其他输入框保持一致 */
+        .custom-datetime-input {
+            padding: 4px 13.7px;
+            border-radius: 8px;
+            margin: 0;
+            width: 100%;
+            box-sizing: border-box;
+            width: auto;
+            border: 2px solid #ccc;
+            text-align: left;
+        }
+
         h2 {
-            font-size: 1.2em;
+            font-size: 1.5em;
+            color: #333;
         }
+
         p {
-            font-size: 0.9em;
+            font-size: 1em;
             color: #666;
+        }
+
+        label {
+            color: #666;
+            font-size: 1em;
+        }
+
+        .custom-file-input {
+            box-sizing: border-box; /* 确保 padding 不影响宽度 */
+            /*width: 250px;             !* 设置框的长度为 300px *!*/
+            position: relative;
+            left: 20px; /* 向右偏移 20px */
+            margin-left: 0px;
+        }
+
+        .id_SourceVideo_file {
+            position: relative;
+            left: 20px; /* 向右偏移 20px */
+        }
+
+        /* 为文件路径的 label 添加右边距 */
+        label[for='source-video-file-id'] {
+            margin-left: 78px; /* 向右移动文件路径的 label */
+        }
+
+        /*button*/
+        button {
+            width: 150px;
+            height: 40px;
+            background: linear-gradient(145deg, #6e7dff, #83acf1);
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease; /* 添加过渡效果 */
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 30px;
+
+        }
+
+        button:hover {
+            background: linear-gradient(145deg, #4e5bff, #6e7dff);
+            transform: translateY(-3px);
+            box-shadow: 2px 2px 5px #555;
+        }
+
+        button:active {
+            background: linear-gradient(145deg, #4e5bff, #6e7dff);
+            transform: translateY(1px);
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center; /* 中心对齐 */
+            align-items: center; /* 垂直居中对齐 */
+            gap: 10px; /* 按钮之间的间隔 */
         }
 
     </style>
     {% endblock style %}
 </head>
 <body>
-    <!-- 网页头与标题：这里补充UI -->
-    {% block title %}
-    {% endblock title %}
-
-    <!-- 源视频 -->
-    <div class="source-video-container">
-
-        <p>当前未上传视频.</p>
-        <!-- 上传视频 -->
-        {% block tipofupload %}<!--上传组件UI优化(这里补充UI需要在原模块基础上修改)-->
-        <h2>上传新的源视频</h2>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">上传</button>
-        </form>
-        {% endblock tipofupload %}
-
+<div class="pilot">
+    <div class="t">
+        <h1>基于视觉语言大模型的视频监控管理系统</h1>
     </div>
+    <ul>
+        <li><a href="#about">关于</a></li>
+        <li><a href="#contact">联系</a></li>
+        <li><a class="active" href="#home">主页</a></li>
+    </ul>
+</div>
+<!-- 网页头与标题：这里补充UI -->
+{% block title %}
+{% endblock title %}
 
-    <!-- 底部：这里补充UI -->
-    {% block bottom %}
-    {% endblock bottom %}
+<!-- 源视频 -->
+<div class="source-video-container">
+    {% block tipofupload %}<!--上传组件UI优化(这里补充UI需要在原模块基础上修改)-->
+    <h2>上传新的源视频</h2>
+    <br>
+    <br>
+    <form enctype="multipart/form-data" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="button-container">
+            <button type="submit">上传</button>
+            <button onclick="window.history.back();" type="button">上传结束</button>
+        </div>
+    </form>
+    {% endblock tipofupload %}
+
+</div>
+
+
+<!-- 底部：这里补充UI -->
+{% block bottom %}
+{% endblock bottom %}
+
+
 </body>
 </html>
+<script>
+    // 获取当前时间并设置到datetime-local输入框中
+    function setDefaultTime() {
+        const now = new Date();
+
+        // 获取当前时间的各个部分
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        // 构造格式：YYYY-MM-DDTHH:MM:SS
+        const datetime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+
+        // 设置默认值
+        document.getElementById('datetime-input').value = datetime;
+    }
+
+    // 页面加载时设置默认时间
+    window.onload = setDefaultTime;
+</script>

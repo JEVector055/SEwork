@@ -1,0 +1,20 @@
+<div class="video-and-button-container">
+    <div class="video-container">
+        <!-- 源视频 -->
+        <div class="source-video-container">
+            <h2>Video Player</h2>
+            <video controls id="source-video">
+                <source id="video-source" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <!-- 隐藏的 input 字段存储 file_path -->
+            <input id="video-url" type="hidden" value="{{ file_path }}">
+        </div>
+        <div class="subtitle-module">
+            <h2>描述</h2>
+            <textarea id="subtitles" placeholder="内容"></textarea>
+        </div>
+    </div>
+    <!-- 生成描述按钮 -->
+    <button class="caption-button">生成描述</button>
+</div>

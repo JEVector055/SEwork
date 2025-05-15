@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&display=swap"
+          rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
+    <meta content="your_csrf_token_here" name="csrf-token">
+
+
+    <title>异常视频查询与修改界面</title>
+    <meta content="丁宗参" name="author">
+    {% block style %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar {
+            width: 25%;
+            height: 77%;
+            position: fixed;
+            top: 6%;
+            left: 0;
+            background-color: #1C4591;
+            padding: 20px;
+            padding-top: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        h2 {
+            position: fixed; /* 设置绝对定位 */
+            top: 0%; /* 距离顶部10% */
+            left: 0; /* 距离左侧0 */
+            width: 25%;
+            margin: 0; /* 移除默认的外边距 */
+            text-align: center; /* 文本居中 */
+            height: 6%; /* 固定高度 */
+            line-height: center; /* 垂直居中文本 */
+            background-color: rgba(176, 203, 250, 1); /* 背景颜色 */
+            padding: 10px; /* 内边距 */
+            box-sizing: border-box; /* 确保内边距和边框不增加总高度 */
+            font-size: 20px; /* 固定字体大小 */
+            z-index: 999;
+            /*border: 2px solid #000;*/
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            margin-top: 0px;
+        }
+
+        .sidebar li {
+            margin: 10px 0px;
+            padding: 2px 5px;
+            background-color: white; /*rgba(16, 203, 250,1);*/ /* 背景颜色 */
+            text-align: center; /* 文本居中 */
+            line-height: center; /* 垂直居中文本 */
+            /*border: 2px solid #7799d4;*/
+            white-space: nowrap; /* 防止文本换行 */
+            overflow: hidden; /* 隐藏溢出的文本 */
+            height: 28px;
+            line-height: 30px;
+            position: relative;
+            display: flex; /* 使用flex布局 */
+            align-items: center; /* 垂直居中 */
+
+        }
+
+        .sidebar a {
+            text-decoration: none;
+            color: #000;
+            flex-grow: 1; /* 文件名占据剩余空间 */
+            white-space: nowrap; /* 防止文本换行 */
+            overflow: hidden; /* 隐藏溢出的文本 */
+            text-overflow: ellipsis; /* 显示省略号 */
+            padding-right: 0px;
+        }
+
+        .sidebar li:hover {
+            background-color: #99bbff;
+        }
+
+        .sidebar li:hover::before {
+            content: attr(title); /* 使用title属性的值作为伪元素的内容 */
+            position: absolute; /* 绝对定位 */
+            bottom: 100%; /* 位于li元素的底部 */
+            left: 50%; /* 水平居中 */
+            transform: translateX(-50%); /* 修正水平位置 */
+            white-space: nowrap; /* 防止文本换行 */
+            background-color: #000; /* 背景颜色 */
+            color: #fff; /* 文本颜色 */
+            padding: 5px; /* 内边距 */
+            border-radius: 3px; /* 边框圆角 */
+            z-index: 1000; /* 确保伪元素显示在其他内容之上 */
+        }
+
+        /* 绝对定位的删除按钮 */
+        .sidebar .delete-btn {
+            position: absolute;
+            right: 0; /* 靠右侧边距 */
+            top: 50%;
+            transform: translateY(-50%); /* 垂直居中 */
+            margin-right: 0px; /* 与边框的间距 */
+            cursor: pointer;
+            padding: 0px 0px;
+            background-color: #7092BE; /*#7799d4 #0066ff #007bff*/
+        / / background-color: #c3c3c3;
+            color: white;
+            border: none;
+            height: 32px;
+            width: 32px;
+        }
+
+        .sidebar .delete-btn:hover {
+            background-color: #007bff; /*#7092BE*/
+        }
+
+        .sidebar .delete-btn i {
+            font-size: 20px; /* 调整图标大小 */
+        / / color: #c3c3c3;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px; /* 滚动条宽度 */
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #1C4591; /* 滚动条轨道背景色 */
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #888; /* 滚动条滑块背景色 */
+            border-radius: 3px; /* 滚动条滑块圆角 */
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #555; /* 滚动条滑块hover背景色 */
+        }
+
+        .sidebar .scrollbar-start {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px; /* 根据需要调整 */
+            background: #1C4591; /* 与侧边栏背景色相同 */
+            pointer-events: none; /* 防止伪元素影响滚动 */
+        }
+
+        .buttons-container {
+            width: 25%;
+            height: 17%;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            background-color: #3282F6;
+
+        }
+
+        .query-score {
+            position: fixed;
+            bottom: 25px;
+            left: 2.5%;
+            width: 20%;
+            z-index: 1000;
+
+        }
+
+        .query-title {
+            position: fixed;
+            bottom: 75px;
+            left: 2.5%;
+            width: 20%;
+            z-index: 1000; /* 确保按钮在最上层 */
+        }
+
+        .query-title input[type="text"], .query-score input[type="text"] {
+            width: calc(100% - 40px); /* 减去按钮的宽度和一些间距 */
+            padding-right: 40px; /* 为图标留出空间 */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+            height: 30px;
+        }
+
+        .query-title button, .query-score button {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+
+        }
+
+        .query-title button:hover, .query-score button:hover {
+            color: #0056b3;
+        }
+
+        .query-title button i, .query-score button i {
+            font-size: 18px;
+        }
+
+        .content {
+        / / margin-left: 240 px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column; /* 使子元素垂直排列 */
+            width: 75%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            right: 0px;
+            align-items: center;
+            box-sizing: border-box;
+        }
+
+        .source-video-container {
+            width: 50%;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+            margin-top: 40px;
+            margin-bottom: 20px; /* 与下方元素的间距 */
+            position: relative; /* 或者使用 absolute */
+            top: -100px; /* 向上移动 50 像素 */
+        }
+
+        .source-video-container video {
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .videoclip-comment-pair {
+            display: flex;
+            flex-direction: row;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .videoclip-container {
+            width: 50%;
+            padding-right: 10px;
+        }
+
+        .comment-process-button {
+            width: 50%;
+            padding-left: 10px;
+            margin-top: 20px;
+            margin-bottom: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .comment-container {
+            width: 50%;
+            padding-left: 10px;
+            border-left: 1px solid #ccc;
+        }
+
+        video {
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        h2 {
+            font-size: 1.2em;
+        }
+
+        p {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .video-and-button-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            box-sizing: border-box;
+        }
+
+        .subtitle-module {
+            margin-left: 20px; /* 根据需要调整距离 */
+            width: 50%;
+            background-color: #E6F2FF;
+            margin-right: 20px;
+            max-height: 290px; /* 最大高度限制 */
+            box-sizing: border-box;
+            overflow: hidden; /* 防止内容溢出 */
+            align-items: center; /* 水平居中对齐 */
+        / / justify-content: center; /* 垂直居中对齐 */
+            display: flex; /* 启用Flexbox布局 */
+            flex-direction: column;
+        }
+
+        .video-and-button-container button {
+            width: 489px; /* button宽度 */
+            position: relative;
+
+        }
+
+        .video-and-button-container button:hover {
+
+            background-color: #7799d4;
+
+        }
+
+        .caption-button {
+            width: 80%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            margin-bottom: 20px;
+            margin-top: 20px; /* 增加顶部间距 */
+            top: -100px; /* 向上移动 50 像素 */
+        }
+
+
+        .videoclips-container {
+            position: fixed;
+            bottom: 0;
+            right: 35%; /* 距离右侧的距离 */
+            width: 40%;
+            height: 35vh;
+            padding: 0px; /* 内边距 */
+        / / background-color: rgba(153, 217, 234, 0.5); /* 使用透明度背景 */
+            background-color: #E6F2FF; /*#B0E2FF #cce6f5*/
+            /*border: 1px solid #ccc; */
+
+        }
+
+        .subtitle-container {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 35%;
+            height: 35vh;
+            padding: 0px;
+            background-color: #E6F2FF;
+        }
+
+        .videoclips-container h3 {
+            margin-left: 100px;
+            margin-bottom: 20px;
+        }
+
+        .detail-container {
+            display: flex; /* 启用Flexbox布局 */
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            flex-direction: column; /* 子元素垂直排列 */
+
+        }
+
+        #videoclips-detail {
+            width: 70%;
+            height: 150px;
+            resize: none;
+            margin-bottom: 20px;
+        / /
+        }
+
+        #subtitles {
+            width: 70%;
+            height: 150px; /* 根据需要调整高度 */
+        / / border-radius: 4 px; /* 添加圆角 */
+            resize: none;
+        }
+
+
+        .videoclip-item {
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .detail-button {
+            width: 100px;
+            height: 40px;
+            display: flex; /* 启用Flexbox布局 */
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            padding: 0; /* 清除默认内边距 */
+            box-sizing: border-box;
+            background: linear-gradient(145deg, #6e7dff, #83acf1);
+            border: none; /* 无边框 */
+            border-radius: 20px; /* 圆角边框 */
+            cursor: pointer; /* 鼠标指针变为手形 */
+            font-size: 14px; /* 字体大小 */
+            color: white; /* 文字颜色 */
+        }
+
+        .detail-button:hover {
+            background: linear-gradient(145deg, #4e5bff, #6e7dff);
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2); /* 阴影效果 */
+        }
+
+        .detail-button:active {
+            background: linear-gradient(145deg, #4e5bff, #6e7dff);
+            transform: translateY(1px); /* 向下移动1像素 */
+            box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2); /* 阴影效果 */
+        }
+
+    </style>
+    {% endblock style %}
+</head>
+<body>
+<h2>异常视频列表</h2>
+<div class="sidebar">
+    <ul id="file-list">
+        <!-- 文件列表将通过JavaScript动态生成 -->
+    </ul>
+</div>
+<div class="buttons-container">
+    <div class="query-title">
+        <input id="title-input" placeholder="标签" type="text">
+        <button id="title-search-button">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+    </div>
+    <div class="query-score">
+        <input id="anomaly-score-input" placeholder="异常分数" type="text">
+        <button id="anomaly-score-search-button">
+            <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+    </div>
+</div>
+<div class="content">
+    <!-- 网页头与标题：这里补充UI -->
+    {% block title %}
+    {% endblock title %}
+
+    <!-- 视频播放器 -->
+    <div class="video-and-button-container">
+        <!-- 源视频 -->
+        <div class="source-video-container">
+            <br>
+            <h2>Video Player</h2>
+            <video controls id="source-video">
+                <source id="video-source" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <!-- 隐藏的 input 字段存储 file_path -->
+            <input id="video-url" type="hidden" value="{{ file_path }}">
+            <input id="server_url" type="hidden" value="{{ server_url }}">
+        </div>
+        <!-- 生成描述按钮 -->
+        <button class="caption-button">生成描述</button>
+    </div>
+
+    <!-- 隔断：这里补充UI -->
+    {% block spacebar %}
+    {% endblock spacebar %}
+
+    <!-- 下面的视频和注释横向对齐 -->
+    {% for videoclip in vclips_comments %}
+    <div class="videoclip-comment-pair">
+        <div class="videoclip-container">
+            <h2>视频片段{{ videoclip.title }}</h2>
+            <video controls id="{{ forloop.counter }}">
+                <source src="{{ videoclip.VideoClip_file.url }}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        {% if videoclip.comment.text %}
+        <div class="comment-container">
+            <h2>对视频片段{{videoclip.title}}的文字描述</h2>
+            <p>{{ videoclip.comment.text }}</p>
+        </div>
+        {% else %}
+        <div class="comment-process-button">
+            <!-- 生成文字描述按钮：补充UI -->
+            {% block cpbutton %}
+            {% endblock cpbutton %}
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <!-- 空结果提示：未上传视频/需要等待处理 （补充UI） -->
+    {% block tipofempty%}
+    {% endblock tipofempty %}
+    {% endfor %}
+
+    <!-- 视频片段信息 -->
+    <div class="videoclips-container">
+        <br>
+        <h3>异常视频片段信息</h3>
+        <div class="detail-container">
+            <div id="videoclips-detail" placeholder="详细信息"></div>
+            <!-- 新增提交按钮 -->
+            <button class="detail-button" id="openPopupButton">修改详细信息</button>
+        </div>
+    </div>
+    <div class="subtitle-container">
+        <br>
+        <h3>异常描述</h3>
+        <div id="subtitles" placeholder="内容"></div>
+    </div>
+</div>
+>
+</body>
+</html>
+<!-- HTML部分 -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+    // 当文档内容加载完成后，执行指定函数
+    document.addEventListener('DOMContentLoaded', function () {
+        // 本地 HTTP 服务器地址
+        function getCsrfToken() {
+            const csrfTokenElement = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfTokenElement) {
+                throw new Error('CSRF token not found in the HTML meta tag.');
+            }
+            return csrfTokenElement.getAttribute('content');
+        }
+
+        // 从sessionStorage中获取当前视频的URL
+        var storedVideoUrl = sessionStorage.getItem('currentVideoUrl');
+        var filePath = document.getElementById('video-url').value;
+        if (storedVideoUrl) {
+            // 设置视频源并播放
+            var videoPlayer = document.getElementById('source-video');
+            var videoSource = document.getElementById('video-source');
+            videoSource.src = storedVideoUrl;
+            videoPlayer.load();
+            videoPlayer.play();
+
+            // 清除存储的视频URL，避免下次加载时重复播放
+            sessionStorage.removeItem('currentVideoUrl');
+        } else {
+
+            const serverPath = document.getElementById('server_url').value;
+
+            // 将 Windows 路径转换为相对路径（去除磁盘前缀，并替换反斜杠为正斜杠）
+            const videoRelativePath = filePath
+                .replace(/^.*media/, 'media')  // 提取相对路径
+                .replace(/\\/g, '/');  // 替换反斜杠为正斜杠
+
+            // 拼接完整的 HTTP URL
+            const videoUrl = `${serverPath}/${videoRelativePath}`;
+            console.log('videoUrl:', videoUrl);
+            // 设置视频源
+            var videoPlayer = document.getElementById('source-video');
+            var videoSource = document.getElementById('video-source');
+            videoSource.src = videoUrl;
+
+            // 重新加载并播放视频
+            videoPlayer.load();  // 重新加载视频
+            videoPlayer.play();  // 播放视频
+        }
+
+
+        // 发送GET请求获取文件列表
+        fetch('/get-files-detail')
+            .then(response => response.json())
+            .then(filesData => {
+                // 获取文件列表元素
+                const fileList = document.getElementById('file-list');
+                // 遍历文件数据，创建并添加文件链接到文件列表
+                filesData.forEach(file => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = '#';
+
+                    // 提取文件名
+                    const fileName = file.split('/').pop();
+                    a.textContent = fileName;  // 显示文件名而不是完整路径
+
+                    // 为文件链接添加点击事件，用于播放视频
+                    a.onclick = function () {
+                        const videoPlayer = document.getElementById('source-video');
+
+                        // 本地 HTTP 服务器地址
+                        const serverPath = document.getElementById('server_url').value;
+
+                        // 将 Windows 路径转换为相对路径（去除磁盘前缀，并替换反斜杠为正斜杠）
+                        const videoRelativePath = file
+                            .replace(/^.*media/, 'media')  // 提取相对路径
+                            .replace(/\\/g, '/');  // 替换反斜杠为正斜杠
+
+                        // 拼接完整的 HTTP URL
+                        const videoUrl = `${serverPath}/${videoRelativePath}`;
+
+                        videoPlayer.src = videoUrl;  // 设置为 HTTP 路径
+                        videoPlayer.load();  // 重新加载视频
+                        videoPlayer.play();  // 播放视频
+                    }
+                    // 创建删除按钮
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-btn'; // 添加类名以便应用CSS样式
+                    //deleteBtn.textContent = 'X';
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; // 使用图标
+                    deleteBtn.onclick = function () {
+                        // 这里添加删除文件的逻辑
+                        console.log('Delete file:', file);
+                        fetch('/delete-record-abnormal/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': getCsrfToken()  // 添加 CSRF 令牌
+                            },
+                            body: JSON.stringify({file_path: file})
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log('Database record deleted successfully');
+
+                                    // 第二步：删除文件系统中的文件
+                                    return fetch('/delete-file/', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRFToken': getCsrfToken()  // 添加 CSRF 令牌
+                                        },
+                                        body: JSON.stringify({file_path: file})
+                                    });
+                                } else {
+                                    throw new Error('Failed to delete database record');
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log('File deleted successfully from filesystem');
+
+                                    // 第三步：从DOM中移除这个li元素
+                                    li.remove();
+                                } else {
+                                    throw new Error('Failed to delete file from filesystem');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error deleting file:', error);
+                            });
+                    };
+                    li.appendChild(a);
+                    li.appendChild(deleteBtn);
+                    fileList.appendChild(li);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching files:', error);
+            });
+        // 发送GET请求获取文件列表
+        // 标签查询按钮点击事件
+        document.getElementById('title-search-button').addEventListener('click', function (event) {
+            event.preventDefault();
+            const label = document.getElementById('title-input').value;
+            fetch(`/abnormal-clips-by-label/${encodeURIComponent(label)}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // 更新页面内容，例如重新渲染视频列表
+                    updateVideoList(data);
+                    console.log()
+                })
+                .catch(error => {
+                    console.error('Error fetching data by label:', error);
+                });
+        });
+        // 异常分数查询按钮点击事件
+        document.getElementById('anomaly-score-search-button').addEventListener('click', function (event) {
+            event.preventDefault();
+            const score = document.getElementById('anomaly-score-input').value;
+            fetch(`/abnormal-clips-by-score/${encodeURIComponent(score)}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // 更新页面内容，例如重新渲染视频列表
+                    updateVideoList(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching data by score:', error);
+                });
+        });
+
+        let popupWindow;
+
+        document.getElementById('openPopupButton').addEventListener('click', function () {
+            var videoUrl1 = document.getElementById('source-video').src;
+            let videoUrl = videoUrl1;
+            // 使用 window.open 打开弹窗，并传递视频地址作为 URL 参数
+            popupWindow = window.open(`popup-page.html?videoUrl=${encodeURIComponent(videoUrl)}`, 'popupWindow', 'width=600,height=400,scrollbars=no');
+
+        });
+
+        // 监听来自弹窗的消息
+        window.addEventListener('message', function (event) {
+            // 仅允许来自相同源的消息
+            if (event.origin !== window.location.origin) {
+                return;
+            }
+
+            if (event.data === 'closePopup') {
+                // 如果消息是关闭弹窗，执行关闭
+                if (popupWindow && !popupWindow.closed) {
+                    popupWindow.close();  // 关闭弹窗
+                }
+            }
+        });
+
+        document.querySelector('.caption-button').addEventListener('click', function () {
+            alert('开始生成描述……');
+            var videoUrl = document.getElementById('source-video').src;
+            fetch('/generate-description/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()  // 添加 CSRF 令牌
+                },
+                body: JSON.stringify({video_url: videoUrl})
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert('异常描述已完成');
+                    // 存储当前视频的URL
+                    sessionStorage.setItem('currentVideoUrl', videoUrl);
+                    location.reload()
+                })
+                .catch(error => {
+                    alert('描述生成失败');
+                });
+        });
+
+        // 更新视频列表的函数
+        function updateVideoList(videos) {
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = ''; // 清空现有列表
+
+            videos.forEach(video => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#';
+
+                // 提取文件名
+                const filepath = video.save_path; // 假设每个视频对象都有一个file_name字段
+                // 提取文件名
+                const fileName = filepath.split('/').pop();
+
+                a.textContent = fileName;  // 显示文件名而不是完整路径
+                // 为文件链接添加点击事件，用于播放视频
+                a.onclick = function () {
+                    const videoPlayer = document.getElementById('source-video');
+
+                    // 本地 HTTP 服务器地址
+                    const serverPath = document.getElementById('server_url').value;
+
+                    // 将 Windows 路径转换为相对路径（去除磁盘前缀，并替换反斜杠为正斜杠）
+                    const videoRelativePath = video.save_path
+                        .replace(/^.*media/, 'media')  // 提取相对路径
+                        .replace(/\\/g, '/');  // 替换反斜杠为正斜杠
+
+                    // 拼接完整的 HTTP URL
+                    const videoUrl = `${serverPath}/${videoRelativePath}`;
+
+                    videoPlayer.src = videoUrl;  // 设置为主视频播放器的源
+                    videoPlayer.load();           // 重新加载视频
+                    videoPlayer.play();           // 播放视频
+                };
+
+                // 创建删除按钮
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn'; // 添加类名以便应用CSS样式
+                deleteBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>'; // 使用图标
+                deleteBtn.onclick = function () {
+                    console.log('Delete file abnormal filepath:', filepath);
+
+                    // 第一步：删除数据库记录
+                    fetch('/delete-record-abnormal/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            // 'X-CSRFToken': getCsrfToken()  // 添加 CSRF 令牌
+                        },
+                        body: JSON.stringify({file_path: filepath})
+                    })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log('Database record deleted successfully');
+
+                                // 第二步：删除文件系统中的文件
+                                return fetch('/delete-file/', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRFToken': getCsrfToken()  // 添加 CSRF 令牌
+                                    },
+                                    body: JSON.stringify({file_path: filepath})
+                                });
+                            } else {
+                                throw new Error('Failed to delete database record');
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                console.log('File deleted successfully from filesystem');
+
+                                // 第三步：从DOM中移除这个li元素
+                                li.remove();
+                            } else {
+                                throw new Error('Failed to delete file from filesystem');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deleting file:', error);
+                        });
+                };
+
+                li.appendChild(a);
+                li.appendChild(deleteBtn);
+                fileList.appendChild(li);
+            });
+        }
+    });
+
+    // 找到视频播放器元素
+    const videoPlayer = document.getElementById('source-video');
+
+    // 添加 play 事件监听器
+    videoPlayer.addEventListener('play', function () {
+        // 获取当前播放视频的 URL
+        const currentVideoUrl = videoPlayer.currentSrc;
+
+        // 发送 GET 请求以获取视频信息
+        fetch(`/get-video-info/?url=${encodeURIComponent(currentVideoUrl)}`)
+            .then(response => response.json())
+            .then(data => {
+                // 更新页面上的异常片段信息
+                updateVideoInfoDisplay(data);
+            })
+            .catch(error => {
+                console.error('Error fetching video info:', error);
+            });
+    });
+
+    function updateVideoInfoDisplay(info) {
+        const detailContainer = document.getElementById('videoclips-detail');
+        const detailContainer1 = document.getElementById('subtitles');
+        let infoText = '';
+        let infoText1 = '';
+
+        if (info.title) {
+            infoText += `<strong>Title:</strong> ${info.title}<br>`;
+        }
+        if (info.description) {
+            infoText += `<strong>Description:</strong> ${info.description}<br><br>`;
+        }
+
+        if (info.anomalies && info.anomalies.length > 0) {
+            info.anomalies.forEach(anomaly => {
+                infoText += `<strong>异常片段ID:</strong> ${anomaly.id}<br>`;
+                infoText += `<strong>原视频ID:</strong> ${anomaly.source_id}<br>`;
+                infoText += `<strong>起始时间:</strong> ${anomaly.start_time}<br>`;
+                infoText += `<strong>结束时间:</strong> ${anomaly.end_time}<br>`;
+                infoText += `<strong>类别标签:</strong> ${anomaly.Label}<br>`;
+                infoText += `<strong>异常分数:</strong> ${anomaly.score}<br>`;
+                infoText1 += `${anomaly.Caption}<br>`;
+                infoText += '<br>'; // 添加额外的换行以分隔不同的异常
+            });
+        } else {
+            infoText += 'No anomalies found.<br>';
+        }
+
+        // 将信息设置到 div 中
+        detailContainer.innerHTML = infoText.trim();
+        // 将信息设置到 div 中
+        detailContainer1.innerHTML = infoText1.trim();
+
+    }
+
+    function playVideo(videoUrl) {
+        const videoPlayer = document.getElementById('source-video');
+        videoPlayer.src = videoUrl;  // 设置主视频播放器的源
+        videoPlayer.load();           // 重新加载视频
+        videoPlayer.play();           // 播放视频
+    }
+
+
+</script>
+
+

@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <title>Register</title>
-    <link rel="stylesheet" href="https://cdn.staticfile.net/font-awesome/4.7.0/css/font-awesome.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&display=swap" rel="stylesheet">
+    <link href="https://cdn.staticfile.net/font-awesome/4.7.0/css/font-awesome.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&display=swap"
+          rel="stylesheet">
 
     <style>
         /* 保持与登录界面的样式一致 */
@@ -16,9 +17,10 @@
             background-color: #E8EDF7;
             display: flex;
             flex-direction: column;
-            background-image: url("templates/webuicore/bg8.jpg");
+            background-image: url("../static/bg3.jpg");
             background-repeat: no-repeat;
             background-position: center;
+            background-size: cover;
         }
 
         .t h1 {
@@ -31,13 +33,13 @@
             background-color: #1C4591;
             border-radius: 10px 10px 0 0;
             font-family: 'Ma Shan Zheng', cursive;
-        } 
+        }
 
         .container {
             width: 380px;
             margin: 10% auto;
             border-radius: 25px;
-            background-color: rgba(192,192,192,0.7);
+            background-color: rgba(192, 192, 192, 0.7);
             box-shadow: 0 0 17px #333;
         }
 
@@ -130,40 +132,40 @@
     </style>
 </head>
 <body>
-    <div class="pilot">
-        <div class="t">
-            <h1>基于视觉语言大模型的视频监控管理系统</h1>
-        </div>
-        <ul>
-            <li><a href="#about">关于</a></li>
-            <li><a href="#contact">联系</a></li>
-            <li><a class="active" href="#home">主页</a></li>
-        </ul>
+<div class="pilot">
+    <div class="t">
+        <h1>基于视觉语言大模型的视频监控管理系统</h1>
     </div>
+    <ul>
+        <li><a href="#about">关于</a></li>
+        <li><a href="#contact">联系</a></li>
+        <li><a class="active" href="#home">主页</a></li>
+    </ul>
+</div>
 
-    <div class="container">
-        <div class="header">
-            <h1>Register</h1>
-        </div>
-        <div class="main">
-            <form method="post">
-                {% csrf_token %}
-                <span>
-                    <i class="fa fa-user"></i>
-                    <input type="text" name="username" placeholder="Username">
-                </span><br>
-                <span>
-                    <i class="fa fa-lock"></i>
-                    <input type="password" name="password" placeholder="Password">
-                </span><br>
-                <span>
-                    <i class="fa fa-lock"></i>
-                    <input type="password" name="confirm_password" placeholder="Confirm Password">
-                </span><br>
-                <button type="submit">Register</button>
-                <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
-            </form>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>Register</h1>
     </div>
+    <div class="main">
+        <form method="post">
+            {% csrf_token %}
+            <span>
+                    <i class="fa fa-user"></i>
+                    <input name="username" placeholder="Username" type="text">
+                </span><br>
+            <span>
+                    <i class="fa fa-lock"></i>
+                    <input name="password" placeholder="Password" type="password">
+                </span><br>
+            <span>
+                    <i class="fa fa-lock"></i>
+                    <input name="confirm_password" placeholder="Confirm Password" type="password">
+                </span><br>
+            <button type="submit">Register</button>
+            <p>Already have an account? <a href="{% url 'login' %}">Login here</a></p>
+        </form>
+    </div>
+</div>
 </body>
 </html>

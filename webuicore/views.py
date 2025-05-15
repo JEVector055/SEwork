@@ -1,22 +1,147 @@
+import base64
+import json
 import os
-import subprocess
+import random
+import re
+from datetime import datetime, timedelta
 
+import cv2
 from django.conf import settings
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.http import FileResponse, JsonResponse, HttpResponseNotFound
 from django.http import Http404
 from django.shortcuts import render, redirect
-from django.views import View
+from django.views.decorators.csrf import csrf_exempt
+from moviepy.video.io.VideoFileClip import VideoFileClip
+from openai import OpenAI
 
 from .forms import LoginForm, RegisterForm, UploadUnitform
-from .models import VideoClip, SourceVideo, User
+from .models import SourceVideo, AbnormalClip, User
+from .save_anomaly_segments import det_anom
+
+
+def login_view(request):
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            # 从表单中获取用户名和密码
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+
+            # 使用 authenticate 验证用户名和密码
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                # 验证通过，登录用户并重定向到 /mainshow
+                request.session['from_login'] = True  # 设置session变量
+                login(request, user)
+                return redirect('/mainshow')
+            else:
+                # 验证失败，返回错误信息
+                form.add_error(None, "用户名或密码不正确")
+                return redirect('login')
+    else:
+        form = LoginForm()
+
+    return render(request, 'webuicore/user_login.html', {'form': form})
+
+
+def mainshow(request):
+    # # 获取所有视频剪辑及其关联的评论
+    # VideoClip.objects.all().select_related('comment')
+
+    # 获取数据库中最新的源视频
+    svideo = SourceVideo.objects.last()
+
+    # 确保 svideo 存在并且有视频文件路径
+    if svideo and svideo.save_path:
+        # 获取源视频文件的URL
+        video_url = svideo.save_path
+        print('video_url:', video_url)
+    else:
+        # 如果源视频或视频文件路径不存在，设置video_url为None
+        video_url = None
+    # 渲染并返回 'webuicore/result.html' 页面
+    return render(request, 'webuicore/result.html', {
+        'vclips_comments': '',
+        'svideo': svideo,
+        'video_url': video_url,
+        'server_url': settings.SERVER_URL
+    })
+
+
+def register_view(request):
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            # 获取表单数据
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            User.objects.create_user(username=username, password=password)
+            return redirect('login')  # 注册成功后重定向到登录页面
+    else:
+        form = RegisterForm()
+
+    return render(request, 'webuicore/user_register.html', {'form': form})
+
+
+def user_logout(request):
+    logout(request)
+    return redirect('login')
+
 
 def get_files(request):
-    # 假设文件存储在MEDIA_ROOT目录下
-    media_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'media', 'SourceVideos')
-    files = os.listdir(media_root)
-    return JsonResponse(files, safe=False)
+    # 查询数据库中的 save_path 字段
+    files = SourceVideo.objects.values_list('save_path', flat=True)
+    # 将 QuerySet 转换为列表
+    files_list = list(files)
+    return JsonResponse(files_list, safe=False)
+
+
+def get_files_detail(request):
+    # 查询数据库中的 save_path 字段
+    files = AbnormalClip.objects.values_list('save_path', flat=True)
+    # 将 QuerySet 转换为列表
+    files_list = list(files)
+    return JsonResponse(files_list, safe=False)
+
+
+def get_anomaly_clips(request):
+    video_url = request.GET.get('video_url')
+
+    if not video_url:
+        return JsonResponse({'success': False, 'error': 'No video URL provided'}, status=400)
+
+    try:
+        # 正则表达式模式，匹配 http(s)://.../media/
+        pattern = r'^https?://[^/]+/media/'
+
+        # 本地路径前缀
+        local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
+        # 使用正则表达式进行替换
+        video_src = re.sub(pattern, local_prefix, video_url)
+        video_src = video_src.replace('/', '\\')
+
+        print('video_src', video_src)
+
+        # 查询对应的 SourceVideo 对象并获取 source_id
+        source_id = SourceVideo.objects.values_list('source_id', flat=True).get(save_path=video_src)
+        print('source_id', source_id)
+        # 查询与该视频相关的所有异常片段的 save_path
+        anomaly_clips_save_paths = AbnormalClip.objects.filter(source_id=source_id).values_list('save_path', flat=True)
+
+        print('anomaly_clips_save_paths', anomaly_clips_save_paths)
+
+        # 准备返回的数据
+        anomaly_clips_data = list(anomaly_clips_save_paths)
+        print(anomaly_clips_data)
+        return JsonResponse(anomaly_clips_data, safe=False)
+
+    except SourceVideo.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'SourceVideo not found'}, status=404)
+    except AbnormalClip.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'No abnormal clips found for the given source_id'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 def download_file(request, filename):
@@ -32,7 +157,134 @@ def download_file(request, filename):
         return HttpResponseNotFound("File not found")
 
 
-dir = f"{settings.MEDIA_ROOT}"
+def video_detail(request):
+    file_path = request.GET.get('file_path')
+    if not file_path:
+        return render(request, 'error.html', {'message': 'No file path provided.'})
+
+    print('file_path', file_path)
+
+    # 将 file_path 放入字典中
+    context = {
+        'file_path': file_path,
+        'server_url': settings.SERVER_URL
+    }
+
+    return render(request, 'webuicore/queryedit.html', context)
+
+
+@csrf_exempt
+def delete_record(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+
+            save_path = data.get('file_path')
+            # 查找并删除数据库记录
+            file_record = SourceVideo.objects.filter(save_path=save_path).first()
+            if file_record:
+                file_record.delete()
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'error': 'Record not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+
+def get_video_info(request):
+    video_url = request.GET.get('url')
+
+    # 正则表达式模式，匹配 http(s)://.../media/
+    pattern = r'^https?://[^/]+/media/'
+
+    # 本地路径前缀
+    local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
+    # 使用正则表达式进行替换
+    video_src = re.sub(pattern, local_prefix, video_url)
+    video_src = video_src.replace('\\', '/')
+
+    print('video_src', video_src)
+
+    try:
+        # 根据视频文件名查找对应的异常片段
+        clip = AbnormalClip.objects.filter(save_path=video_src).first()
+
+        print('clip:', clip)
+
+        # 构建响应数据
+        data = {
+            "anomalies": []
+        }
+
+        # 起始时间和截止时间保留整秒数
+        start_time = clip.start_time.replace(microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
+        end_time = clip.end_time.replace(microsecond=0).strftime('%Y-%m-%d %H:%M:%S')
+
+        # 异常得分保留两位小数
+        score = f"{clip.score:.2f}"
+
+        data['anomalies'].append({
+            "source_id": clip.source_id,
+            "id": clip.abnormal_id,
+            "title": clip.title,
+            "start_time": start_time,
+            "end_time": end_time,
+            "Label": clip.label,
+            "score": score,
+            "Caption": clip.caption
+        })
+
+        print('data:', data)
+
+        if not data['anomalies']:
+            return JsonResponse({"message": "No anomalies found for this video"})
+
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+def delete_record_abnormal(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+
+            save_path = data.get('file_path')
+            # 查找并删除数据库记录
+            file_record = AbnormalClip.objects.filter(save_path=save_path).first()
+            if file_record:
+                file_record.delete()
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'success': False, 'error': 'Record not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def delete_file(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            print('data:', data)
+            save_path = data.get('file_path')
+            print('save_path:', save_path)
+            # 检查文件是否存在并删除
+            if os.path.exists(save_path):
+                os.remove(save_path)
+                return JsonResponse({'success': True})
+            else:
+                print('没找到文件')
+                return JsonResponse({'success': False, 'error': 'File not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+
+dir = f"{settings.SOURCEVIDEOS_ROOT}"
 dir_sour = f"{settings.MEDIA_ROOT}/anomaly_mp4"
 dir_res = f"{settings.MEDIA_ROOT}/result.mp4"
 dir_at = f"{settings.MEDIA_ROOT}/anomaly_txt"
@@ -40,54 +292,47 @@ dir_xt = f"{settings.MEDIA_ROOT}/final_txt"
 extension = "mp4"
 
 
-def user_register(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('home')
-    else:
-        form = UserCreationForm()
-    return render(request, 'webuicore/user_register.html', {'form': form})
-
-
-def user_login(request):
-    if request.method == 'POST':
-        form = AuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            return redirect('home')
-    else:
-        form = AuthenticationForm()
-    return render(request, 'webuicore/user_login.html', {'form': form})
-
-
-def user_logout(request):
-    logout(request)
-    return redirect('login')
-
-
 def uploader(request):
-    """
-    处理视频上传的视图函数。
-
-    参数:
-    - request: HttpRequest对象，包含用户请求的数据。
-
-    返回:
-    - 如果是POST请求且表单验证通过，则保存上传的视频并重定向到'current'页面。
-    - 如果是GET请求，则渲染上传表单页面。
-    - 如果数据库中存在视频且未上传新视频，则启动视频处理程序。
-    """
-    # 获取数据库中最新的视频对象
-    SourceVideo.objects.last()
     # 处理POST请求，即用户提交表单的情况
     if request.method == 'POST':
+        # 创建 UploadUnitform 实例，包含请求的数据和文件
         form = UploadUnitform(request.POST, request.FILES)
+        # 验证表单数据是否有效
         if form.is_valid():
-            form.save()
+            # 从请求中获取视频文件
+            video_file = request.FILES['source_path']
+            # 获取表单中提交的视频标题
+            video_title = form.cleaned_data['source_title']
+            # 获取视频文件的扩展名
+            video_extension = os.path.splitext(video_file.name)[1]
+            # 以 source_title 和原扩展名重新命名文件
+            new_video_name = f"{video_title}{video_extension}"
+            # 构建视频文件的临时保存路径
+            video_path = os.path.join(dir, '', new_video_name)
+
+            # 打开目标文件，准备写入
+            with open(video_path, 'wb+') as destination:
+                # 分块读取并写入视频文件，以处理大文件
+                for chunk in video_file.chunks():
+                    destination.write(chunk)
+
+            # 使用 VideoFileClip 库获取视频时长
+            video_clip = VideoFileClip(video_path)
+            video_duration = int(video_clip.duration)
+            video_clip.close()
+
+            instance = form.save(commit=False)
+            instance.upload_time = datetime.now()
+            instance.video_duration = video_duration
+            instance.title = video_title
+            instance.save_path = video_path
+
+            instance.end_time = instance.start_time + timedelta(seconds=video_duration)
+            instance.monitor_id = 1
+            # 保存实例到数据库
+            instance.save()
+
+            # 重定向到 'mainshow' 页面
             return redirect('mainshow')
         else:
             # 表单验证失败，抛出404错误
@@ -95,308 +340,270 @@ def uploader(request):
     else:
         # 处理GET请求，即用户请求上传表单的情况
         form = UploadUnitform()
+        # 渲染上传表单页面
         return render(request, 'webuicore/mainpage.html', {'form': form})
 
 
-def currentresult(request):
-    vclips_comments = VideoClip.objects.all().select_related('comment')
-    svideo = SourceVideo.objects.last()
-    ##将片段信息导入数据库
-    ##启动程序（未添加）    
-    return render(request, 'webuicore/result.html', {
-        'vclips_comments': vclips_comments,
-        'svideo': svideo
-    })
-
-
-def mainshow(request):
-    """
-    加载并渲染主显示页面。
-
-    从数据库中获取所有视频剪辑及其关联的评论，并获取最新的源视频。
-    如果最新的源视频存在且有视频文件路径，则获取其URL，否则设置为None。
-
-    参数:
-    - request: HTTP 请求对象。
-
-    返回:
-    - 渲染后的 'webuicore/result.html' 页面，包含视频剪辑和评论、最新的源视频以及视频URL。
-    """
-    # 获取所有视频剪辑及其关联的评论
-    VideoClip.objects.all().select_related('comment')
-
-    # 获取数据库中最新的源视频
-    svideo = SourceVideo.objects.last()
-
-    # 确保 svideo 存在并且有视频文件路径
-    if svideo and svideo.SourceVideo_file:
-        # 获取源视频文件的URL
-        video_url = svideo.SourceVideo_file.url
-    else:
-        # 如果源视频或视频文件路径不存在，设置video_url为None
-        video_url = None
-    print(video_url)
-    # 渲染并返回 'webuicore/result.html' 页面
-    return render(request, 'webuicore/result.html', {
-        'vclips_comments': '',
-        'svideo': svideo,
-        'video_url': video_url
-    })
-
-
-def login_view(request):
-    if request.method == 'POST':
-        form = LoginForm(request.POST)
-        if form.is_valid():
-            # 从表单中获取用户名和密码
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password']
-
-            # 使用 authenticate 验证用户名和密码
-            user = authenticate(request, username=username, password=password)
-            if user is not None:
-                # 验证通过，登录用户并重定向到 /mainshow
-                login(request, user)
-                return redirect('/mainshow')
-            else:
-                # 验证失败，返回错误信息
-                form.add_error(None, "用户名或密码不正确")
-    else:
-        form = LoginForm()
-    return render(request, 'webuicore/user_login.html', {'form': form})
-# CREATE TABLE `django_session` (
-#     `session_key` varchar(40) NOT NULL PRIMARY KEY,
-#     `session_data` text NOT NULL,
-#     `expire_date` datetime NOT NULL
-# ) ENGINE=InnoDB;
-
-
-def register_view(request):
-    if request.method == 'POST':
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            # 获取表单数据
-            username = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
-            # username=form.cleaned_data['username'],
-            # password=form.cleaned_data['password']
-
-            # 使用自定义 User 模型创建新用户
-            User.objects.create_user(username=username, password=password)
-            return redirect('login')  # 注册成功后重定向到登录页面
-    else:
-        form = RegisterForm()
-
-    return render(request, 'webuicore/user_register.html', {'form': form})
-
-
-class ExecuteCommandView(View):
-    def post(self, request):
-        button_id = request.POST.get('button_id')
-        VideoClip(id=button_id)
-        subprocess.run(f"python create_anomaly_captions.py --index {button_id}")
-        # 修改对应后端接口（直接输出到数据库或临时文件）,输出到数据库需要添加索引参数
-        subprocess.run(f"torchrun --nproc_per_node=2 --nnodes=1 generate_final_caption.py --index {button_id}")
-        # 修改对应后端接口直接输出到数据库或临时文件,需要根据buttonid添加索引参数
-
-
-import json, logging, cv2, tqdm, torch
-from PIL import Image
-from django.views.decorators.csrf import csrf_exempt
-
-logger = logging.getLogger(__name__)
-
-
 @csrf_exempt
-def execute_anomaly_detection(request):
+def exe_vad(request):
     if request.method == 'POST':
         try:
             print('Received POST request', request)
-            # 尝试解析请求体
             data = json.loads(request.body.decode('utf-8'))
-            # print(data)
             video_src = data.get('video_url')
-            # print(video_src)
             if not video_src:
                 return JsonResponse({'error': 'video_src is required'}, status=400)
 
-            # 处理正常逻辑
-            # 例如，调用异常检测函数
-            result = detect_anomalies(video_src)
-            # result = {'status': 'success', 'message': 'Anomaly detection executed'}
+            # 正则表达式模式，匹配 http(s)://.../media/
+            pattern = r'^https?://[^/]+/media/'
+
+            # 本地路径前缀
+            local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
+            # 使用正则表达式进行替换
+            video_src = re.sub(pattern, local_prefix, video_src)
+            video_src = video_src.replace('/', '\\')
+
+            # 查询数据库并打印结果
+            source_videos = SourceVideo.objects.filter(save_path=video_src)
+
+            if not source_videos.exists():
+                return JsonResponse({'error': 'No matching record found'}, status=404)
+
+            # 假设我们取第一个匹配的记录
+            source_video_id = source_videos.first().source_id
+
+            result = det_anom(video_src, source_video_id=source_video_id)
 
             return JsonResponse(result, safe=False)
         except json.JSONDecodeError as e:
-            logger.error(f'Invalid JSON format: {e}')
             return JsonResponse({'error': 'Invalid JSON format'}, status=400)
         except Exception as e:
-            logger.error(f'Unexpected error: {e}')
             return JsonResponse({'error': 'Internal server error'}, status=500)
     else:
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-def detect_anomalies(video_src):
-    # 这里实现你的异常检测逻辑
-    # 假设返回一个包含异常片段的列表
-    # 每个片段包含 title 和 file 字段
-    """
-        处理视频帧，识别并保存异常片段。
+# 查询函数
+def abnormal_clips_by_label(request, label):
+    try:
+        abnormal_clips = AbnormalClip.objects.filter(label=label)
+        print("label: ", label)
+        result = [
+            {
+                'abnormal_id': clip.abnormal_id,
+                'source_id': clip.source_id,
+                'save_path': clip.save_path.url,
+                'title': clip.title,
+                'label': clip.label,
+                'caption': clip.caption,
+                'score': clip.score,
+                'start_time': clip.start_time.isoformat(),
+                'end_time': clip.end_time.isoformat(),
+            }
+            for clip in abnormal_clips
+        ]
+        print("result: ", result)
+        return JsonResponse(result, safe=False)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-        参数:
-        video_path: str, 输入视频文件的路径。
-        output_dir: str, 输出异常片段的保存目录。
 
-        返回:
-        list, 包含所有异常片段保存路径的列表。
-        """
-    input_video_path = os.path.join('G:/Code/video_management/webui4VadCLIP-develop', video_src)
-    input_video_path = 'G:/Code/video_management/webui4VadCLIP-develop/media/SourceVideos/demo_video_lZ4NRGw.mp4'
-    print(input_video_path)  # 为什么不能读取mediaroot
-    output_dir = input_video_path
-    # 创建输出目录（如果不存在）
-    # os.makedirs(output_dir, exist_ok=True)
-    # 打开视频文件
-    cap = cv2.VideoCapture(input_video_path)
+@csrf_exempt
+def generate_video_caption(request):
+    try:
+        if request.method != 'POST':
+            return JsonResponse({'success': False, 'error': 'Only POST requests are allowed'}, status=405)
+        # 解析 POST 请求体
+        data = json.loads(request.body.decode('utf-8'))
+        video_path = data.get('video_url')  # 从请求中获取视频路径
 
-    # 获取视频的总帧数和帧率
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    print(f"Total Frames: {frame_count}, FPS: {fps}")
-    # 创建一个tqdm进度条
-    progress_bar = tqdm(total=frame_count, desc="Processing Frames", unit="frame")
+        # 正则表达式模式，匹配 http(s)://.../media/
+        pattern = r'^https?://[^/]+/media/'
 
-    # 定义视频中可能的异常行为标签
-    labels = ["Normal", "Abuse", "Arrest", "Arson", "Assault", "Burglary", "Explosion", "Fighting",
-              "Road Accidents", "Robbery", "Shooting", "Shoplifting", "Stealing", "Vandalism"]
+        # 本地路径前缀
+        local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
+        # 使用正则表达式进行替换
+        video_path = re.sub(pattern, local_prefix, video_path)
+        video_path = video_path.replace('/', '\\')
 
-    video_features_list = []  # 帧级标签集合
-    video_frame_list = []
-    anomaly_frames = []  # 异常帧
-    anomaly_start_frame = None  # 起始位置
-    anomaly_captions = []  # 用于存储异常帧的描述
-    anomaly_segment_paths = []  # 存储异常片段的路径列表
-    segment_dir = None
-    i = 0
-    while True:
-        i += 1
-        print(i)
-        ret, frame = cap.read()
-        if not ret:
-            break
-        video_frame_list.append(frame)
+        if not video_path or not os.path.exists(video_path):
+            return JsonResponse({'success': False, 'error': 'Invalid video path'}, status=400)
+        frame_list = extract_frames(video_path)
 
-        with torch.no_grad():
-            frame_pil = Image.fromarray(frame)
-            frame_preprocessed = clip_preprocess(frame_pil).unsqueeze(0).to(device_0)
-            frame_features = clip_model.encode_image(frame_preprocessed)
-            video_features_list.append(frame_features)
+        if not frame_list:
+            return JsonResponse({'success': False, 'error': 'No frames extracted from the video'}, status=400)
+        # 编码图像
+        base64_image = encode_image(frame_list)
+        client = OpenAI(
+            # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx"
+            api_key='sk-d7da78b936be4f1aabc1e2b5c52dd709',  # 替换为你的API密钥
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
+        )
+        completion = client.chat.completions.create(
+            model="qwen-vl-max-latest",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            # 需要注意，传入BASE64，图像格式（即image/{format}）需要与支持的图片列表中的Content Type保持一致。"f"是字符串格式化的方法。
+                            # PNG图像：  f"data:image/png;base64,{base64_image}"
+                            # JPEG图像： f"data:image/jpeg;base64,{base64_image}"
+                            # WEBP图像： f"data:image/webp;base64,{base64_image}"
+                            "image_url": {"url": f"data:image/jpg;base64,{base64_image}"},
+                        },
+                        {"type": "text", "text": "这是一张包含异常情况的图片，请用一句话描述其异常情况"},
+                    ],
+                }
+            ],
+        )
+        caption = completion.choices[0].message.content
+        print("异常描述：", caption)
+        video_path = video_path.replace('\\', '/')
+        print("video_path", video_path)
+        try:
+            abnormal_clip = AbnormalClip.objects.filter(save_path=video_path).first()
+            print(f"AbnormalClip found: {abnormal_clip}")
 
-            if len(video_features_list) >= args.visual_length:
-                video_features = torch.cat(video_features_list, dim=0)
-                video_features = video_features.reshape(1, 256, 512)
-                lengths = torch.tensor([args.visual_length]).to(device_0)
-                res = eval_anomaly_scores(clipvad_model, video_features, lengths, device_0)
+            abnormal_clip.caption = caption
+            abnormal_clip.save()
+            print(f"Caption updated successfully for save_path: {video_path}, new caption: {abnormal_clip.caption}")
 
-                for j in range(len(res)):
-                    text_score = res[j].item()
-                    if text_score > 0.8:
-                        label = "Anomaly"
-                        color = (0, 0, 255)
-                        prompt = generate_label(clip_model, clip_preprocess, video_frame_list[j], labels, device_0)
-                        caption = generate_caption(blip_model, blip_processor, video_frame_list[j], prompt, device_1)
-                        anomaly_captions.append(caption)  # 保存描述
-                        # 更新异常起始帧
-                        if anomaly_start_frame is None:
-                            anomaly_start_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES)) - len(video_frame_list) + j
-                        anomaly_frames.append(video_frame_list[j])
-                    else:
-                        label = "Normal"
-                        color = (0, 255, 0)
-                        description = "No anomaly detected"
-                        if anomaly_frames:
-                            # 更新异常结束帧
-                            anomaly_end_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES)) - len(video_frame_list) + j
-                            # 将帧转化为实际时间
-                            start_time = anomaly_start_frame / fps
-                            end_time = anomaly_end_frame / fps
+            return JsonResponse({'success': True, 'caption': caption}, status=200)
+        except AbnormalClip.DoesNotExist:
+            print(f"AbnormalClip not found for save_path: {video_path}")
+            return JsonResponse({'success': False, 'error': 'AbnormalClip record not found'}, status=404)
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        return JsonResponse({'success': True, 'caption': caption}, status=200)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-                            # 构建输出文件名
-                            segment_dir = f"{output_dir}/anomaly_{start_time:.2f}_{end_time:.2f}"
-                            os.makedirs(segment_dir, exist_ok=True)
-                            segment_filename = f"{segment_dir}/anomaly_{start_time:.2f}_{end_time:.2f}.mp4"
-                            caption_filename = f"{segment_dir}/anomaly_{start_time:.2f}_{end_time:.2f}.txt"
 
-                            # 保存异常片段为视频文件
-                            save_frames_as_mp4(anomaly_frames, segment_filename, fps)
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
-                            # 写入描述到文本文件
-                            with open(caption_filename, 'w') as file:
-                                for caption in anomaly_captions:
-                                    file.write(caption + '\n')
 
-                            # 记录异常片段的路径
-                            anomaly_segment_paths.append(segment_dir)
+def extract_frames(video_path):
+    # 获取视频文件名（不带扩展名）
+    video_name = os.path.splitext(os.path.basename(video_path))[0]
+    # 创建以视频文件名为名称的文件夹
+    output_folder = os.path.join(r'G:\Code\video_management\webui4VadCLIP-develop\media\temp', video_name)
+    os.makedirs(output_folder, exist_ok=True)
 
-                            # 清空异常片段和描述列表
-                            anomaly_frames = []
-                            anomaly_start_frame = None
-                            anomaly_captions = []
+    cap = cv2.VideoCapture(video_path)
+    frame_path = None
 
-                    cv2.putText(video_frame_list[j], f'{label}: {text_score:.2f}', (16, 160), cv2.FONT_HERSHEY_SIMPLEX,
-                                1.0, color, 1, cv2.LINE_AA)
-                    cv2.putText(video_frame_list[j], f'Description: {description}', (16, 224), cv2.FONT_HERSHEY_SIMPLEX,
-                                1.0, color, 1, cv2.LINE_AA)
+    if cap.isOpened():
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if total_frames > 0:
+            # 随机选择一帧
+            random_frame_index = random.randint(0, total_frames - 1)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, random_frame_index)
+            success, frame = cap.read()
+            if success:
+                # 构建帧文件名
+                frame_filename = f"frame_{random_frame_index:04d}.jpg"
+                frame_path = os.path.join(output_folder, frame_filename)
 
-                video_frame_list = []
-                video_features_list = []  # 清空列表以释放显存
-                torch.cuda.empty_cache()
+                # 保存帧到文件
+                cv2.imwrite(frame_path, frame)
 
-            # 更新进度条
-            progress_bar.update(1)
-
-        # 视频结束部分异常片段(如果有)
-        if anomaly_frames:
-            anomaly_end_frame = frame_count
-            start_time = anomaly_start_frame / fps
-            end_time = anomaly_end_frame / fps
-            segment_dir = f"{output_dir}/anomaly_{start_time:.2f}_{end_time:.2f}"
-            os.makedirs(segment_dir, exist_ok=True)
-            segment_filename = f"{segment_dir}/anomaly_{start_time:.2f}_{end_time:.2f}.mp4"
-            caption_filename = f"{segment_dir}/anomaly_{start_time:.2f}_{end_time:.2f}.txt"
-
-            # 保存异常片段为视频文件
-            save_frames_as_mp4(anomaly_frames, segment_filename, fps)
-
-            # 写入描述到文本文件
-            with open(caption_filename, 'w') as file:
-                for caption in anomaly_captions:
-                    file.write(caption + '\n')
-
-            # 记录异常片段的路径
-            anomaly_segment_paths.append(segment_dir)
-
-    # 关闭进度条
-    progress_bar.close()
     cap.release()
-    print(anomaly_segment_paths)
-    return anomaly_segment_paths
+    return frame_path
 
 
-def save_frames_as_mp4(frames, output_filename, fps):
-    """
-    将帧列表保存为MP4视频文件。
+def abnormal_clips_by_score(request, threshold):
+    try:
+        threshold = float(threshold)
+        print("threshold: ", threshold)
+        abnormal_clips = AbnormalClip.objects.filter(score__gt=threshold)
+        result = [
+            {
+                'abnormal_id': clip.abnormal_id,
+                'source_id': clip.source_id,
+                'save_path': clip.save_path.url,
+                'title': clip.title,
+                'label': clip.label,
+                'caption': clip.caption,
+                'score': clip.score,
+                'start_time': clip.start_time.isoformat(),
+                'end_time': clip.end_time.isoformat(),
+            }
+            for clip in abnormal_clips
+        ]
+        return JsonResponse(result, safe=False)
+    except ValueError:
+        return JsonResponse({'success': False, 'error': 'Invalid threshold value'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
-    参数:
-    frames: list, 包含帧的列表。
-    output_filename: str, 输出视频文件的路径。
-    fps: float, 视频的帧率。
-    """
-    height, width, _ = frames[0].shape
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_filename, fourcc, fps, (width, height))
 
-    for frame in frames:
-        out.write(frame)
+def popup_page(request):
+    # 从 GET 请求中获取 videoUrl 参数
+    video_url = request.GET.get('videoUrl')
+    if not video_url:
+        return JsonResponse({'success': False, 'error': 'videoUrl 参数未提供'}, status=400)
 
-    out.release()
+    # 正则表达式模式，匹配 http(s)://.../media/
+    pattern = r'^https?://[^/]+/media/'
+
+    # 本地路径前缀
+    local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
+    # 使用正则表达式进行替换
+    video_src = re.sub(pattern, local_prefix, video_url)
+    video_src = video_src.replace('/', '\\')
+
+    print('video_src', video_src)
+
+    # 将 video_url 传递给模板
+    context = {
+        'video_src': video_src,
+    }
+    return render(request, 'mainshow/popup-page.html', context)
+
+
+@csrf_exempt
+def modify(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            label = data.get('label')
+            score = data.get('score')
+            caption = data.get('caption')
+            video_src = data.get('video_src')
+            video_src = video_src.replace('\\', '/')
+
+            print('label: ', label)
+            print('score: ', score)
+            print('caption: ', caption)
+            print('video_src: ', video_src)
+
+            # 查找记录
+            clip = AbnormalClip.objects.filter(save_path=video_src).first()
+
+            # 更新记录
+            clip.label = label
+            clip.score = score
+            clip.caption = caption
+
+            # 保存更改
+            clip.save()
+
+            # 打印保存成功信息
+            print(f"Record with video_src '{video_src}' updated successfully.")
+
+            # 在这里处理数据，例如保存到数据库
+            # 例如：
+            # YourModel.objects.create(label=label, score=score, caption=caption, video_src=video_src)
+
+            # 返回成功响应
+            return JsonResponse({'status': 'success', 'message': 'Data saved successfully'})
+        except Exception as e:
+            # 返回错误响应
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)

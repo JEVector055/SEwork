@@ -1,15 +1,46 @@
 from django import forms
+
 from .models import SourceVideo
+
 
 class UploadUnitform(forms.ModelForm):
     class Meta:
         model = SourceVideo
-        fields = ['title', 'SourceVideo_file']
+        fields = ['source_title', 'source_path', 'start_time']  # 移除 'upload_time'
+
+    # 给 'source_title' 字段添加自定义样式
+    source_title = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'custom-title-input',
+            'placeholder': '请输入视频标题'
+        })
+        , label='视频标题'
+    )
+
+    # 给 'source_path' 字段添加文件上传控件
+    source_path = forms.FileField(
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'custom-file-input',
+            'id': 'source-video-file-id'
+        })
+        , label='文件路径'
+    )
+
+    # 给 'start_time' 字段添加自定义样式
+    start_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={
+            'class': 'custom-datetime-input',
+            'type': 'datetime-local'  # 使用本地日期时间选择器
+        })
+        , label='开始时间'
+    )
+
 
 # forms.py
 from django import forms
 from django.contrib.auth import authenticate
 from .models import User
+
 
 class LoginForm(forms.Form):
     username = forms.CharField(max_length=150)

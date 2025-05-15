@@ -1,0 +1,22 @@
+<div class="videoclip-comment-pair">
+    <div class="videoclip-container">
+        <h2>视频片段{{ videoclip.title }}</h2>
+        <video controls id="{{ forloop.counter }}">
+            <source src="{{ videoclip.VideoClip_file.url }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+    {% if videoclip.comment.text %}
+    <div class="comment-container">
+        <h2>对视频片段{{videoclip.title}}的文字描述</h2>
+        <p>{{ videoclip.comment.text }}</p>
+    </div>
+    {% else %}
+    <div class="comment-process-button">
+        <!-- 生成文字描述按钮：补充UI -->
+        {% block cpbutton %}
+        <button id="{{ forloop.counter }}">生成视频片段{{ videoclip.title }}的文字描述</button>
+        {% endblock cpbutton %}
+    </div>
+    {% endif %}
+</div>

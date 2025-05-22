@@ -11,3 +11,4 @@ probably_NOT_used/
 webuicore/save_anomaly_segments/vadclip/model_ucf.pth
 data/anomaly_mp4/*.mp4
 db.sqlite3
+~*

@@ -1,0 +1,290 @@
+@startuml
+
+' 设置全局样式
+skinparam monochrome true
+skinparam class {
+    BackgroundColor LightBlue
+    BorderColor Blue
+    ArrowColor DarkBlue
+}
+
+' 定义GIS相关类
+class GeoLocation {
+    +latitude: float
+    +longitude: float
+    +altitude: float
+    +address: string
+    +get_distance(other_location): float
+    +to_json(): dict
+}
+
+' 定义抽象基类
+abstract class View {
+    +request: HttpRequest
+    +dispatch(request)
+    +http_method_not_allowed(request)
+}
+
+abstract class Model {
+    +id: int
+    +save()
+    +delete()
+}
+
+' 定义认证接口
+interface IAuthenticationBackend {
+    +authenticate(username, password): User
+    +create_user(username, password, email): User
+    +validate_user(username): bool
+}
+
+' 定义视频分析器接口
+interface IVideoAnalyzer {
+    +analyze_video(video_path, source_id): List<AbnormalClip>
+    +detect_anomalies(frame): List<DetectionResult>
+    +generate_clips(detections, video_path): List<AbnormalClip>
+}
+
+' 定义GIS服务接口
+interface IGisService {
+    +get_location_by_address(address): GeoLocation
+    +get_nearby_videos(location, radius): List<SourceVideo>
+    +get_nearby_anomalies(location, radius): List<AbnormalClip>
+}
+
+' 定义GIS服务实现
+class GisServiceImpl implements IGisService {
+    +get_location_by_address(address)
+    +get_nearby_videos(location, radius)
+    +get_nearby_anomalies(location, radius)
+    +geocode(address)
+    +reverse_geocode(lat, lon)
+}
+
+' 定义认证后端
+class AuthenticationBackend implements IAuthenticationBackend {
+    +user_model: User
+    +authenticate(username, password)
+    +create_user(username, password, email)
+    +validate_user(username)
+    +get_user(user_id)
+}
+
+' 定义用户类
+class User extends Model {
+    +username: string
+    +password: string
+    +email: string
+    +is_active: boolean
+    +date_joined: datetime
+    +set_password(raw_password)
+    +check_password(raw_password): boolean
+}
+
+' 定义监控器类
+class Monitor extends Model {
+    +user: User (ForeignKey)
+    +location: GeoLocation (Embedded)
+    +is_active: boolean
+    +created_at: datetime
+}
+
+' 定义源视频类
+class SourceVideo extends Model {
+    +monitor: Monitor (ForeignKey)
+    +location: GeoLocation (Embedded)
+    +title: string
+    +save_path: FileField
+    +upload_time: datetime
+    +start_time: datetime
+    +end_time: datetime
+    +duration: float
+    +analyze_status: str
+}
+
+' 定义异常片段类
+class AbnormalClip extends Model {
+    +source: SourceVideo (ForeignKey)
+    +location: GeoLocation (Embedded)
+    +save_path: FileField
+    +title: string
+    +label: string
+    +caption: string
+    +score: float
+    +start_time: datetime
+    +end_time: datetime
+}
+
+' 定义模型基类
+abstract class NeuralNetworkModel {
+    +train()
+    +predict()
+    +evaluate()
+}
+
+' 定义异常检测模型类
+class CLIPVAD extends NeuralNetworkModel implements IVideoAnalyzer {
+    +__init__(classes_num, embed_dim, ...)
+    +forward(input)
+    +extract_features(input)
+    +analyze_video(video_path, source_id)
+    +detect_anomalies(frame)
+    +generate_clips(detections, video_path)
+    +save_clips(clips)
+}
+
+' 定义神经网络层基类
+abstract class Layer {
+    +forward(input)
+    +backward(gradient)
+}
+
+' 定义注意力池化层类
+class AttentionPool2d extends Layer {
+    +__init__(spacial_dim, embed_dim, ...)
+    +forward(x)
+}
+
+' 定义残差注意力块类
+class ResidualAttentionBlock extends Layer {
+    +__init__(d_model, n_head, ...)
+    +attention(x, padding_mask)
+    +forward(x)
+}
+
+' 定义视图类层级结构
+class LoginView extends View {
+    -auth_backend: IAuthenticationBackend
+    +__init__(auth_backend)
+    +post(request)
+    +get(request)
+}
+
+class RegisterView extends View {
+    -auth_backend: IAuthenticationBackend
+    +__init__(auth_backend)
+    +post(request)
+    +get(request)
+}
+
+class MainShowView extends View {
+    +get(request)
+}
+
+class UploadVideoView extends View {
+    -video_analyzer: IVideoAnalyzer
+    +__init__(video_analyzer)
+    +post(request)
+}
+
+class GetFilesView extends View {
+    +get(request)
+}
+
+class GetFilesDetailView extends View {
+    +get(request)
+}
+
+class GetAnomalyClipsView extends View {
+    +get(request)
+}
+
+class DeleteRecordView extends View {
+    +post(request)
+}
+
+class DeleteRecordAbnormalView extends View {
+    +post(request)
+}
+
+class DeleteFileView extends View {
+    +post(request)
+}
+
+class VideoDetailView extends View {
+    +get(request)
+}
+
+class GetVideoInfoView extends View {
+    +get(request)
+}
+
+' 新增GIS视图
+class GISVideoView extends View {
+    -gis_service: IGisService
+    +__init__(gis_service)
+    +get(request)
+    +get_nearby_videos(request)
+    +get_nearby_anomalies(request)
+}
+
+' 定义模型与视图之间的关联
+LoginView ..> IAuthenticationBackend : 使用
+RegisterView ..> IAuthenticationBackend : 使用
+UploadVideoView ..> IVideoAnalyzer : 使用
+GISVideoView ..> IGisService : 使用
+MainShowView -- SourceVideo : 查询
+MainShowView -- AbnormalClip : 查询
+GetFilesView -- SourceVideo : 查询
+GetFilesDetailView -- SourceVideo : 查询
+GetFilesDetailView -- AbnormalClip : 查询
+GetAnomalyClipsView -- SourceVideo : 查询
+GetAnomalyClipsView -- AbnormalClip : 查询
+DeleteRecordView -- SourceVideo : 删除
+DeleteRecordAbnormalView -- AbnormalClip : 删除
+DeleteFileView -- SourceVideo : 删除
+DeleteFileView -- AbnormalClip : 删除
+VideoDetailView -- SourceVideo : 查询
+VideoDetailView -- AbnormalClip : 查询
+GetVideoInfoView -- AbnormalClip : 查询
+
+' 定义认证流程
+AuthenticationBackend -- User : 操作
+LoginView --> AuthenticationBackend : 认证请求
+RegisterView --> AuthenticationBackend : 创建用户请求
+AuthenticationBackend --> User : 查询/创建
+
+' 定义视频分析流程
+CLIPVAD --> SourceVideo : 读取视频文件
+CLIPVAD --> AbnormalClip : 创建异常片段
+UploadVideoView --> CLIPVAD : 调用分析
+CLIPVAD --> SourceVideo : 更新分析状态
+
+' 定义GIS相关流程
+GISVideoView --> SourceVideo : 查询地理位置相关视频
+GISVideoView --> AbnormalClip : 查询地理位置相关异常片段
+GisServiceImpl --> SourceVideo : 查询
+GisServiceImpl --> AbnormalClip : 查询
+
+' 定义类之间的关联
+AbnormalClip *-- SourceVideo : 外键关联
+SourceVideo *-- Monitor : 外键关联
+Monitor *-- User : 外键关联
+CLIPVAD *-- AttentionPool2d : 包含
+CLIPVAD *-- ResidualAttentionBlock : 包含
+
+' 定义继承关系
+LoginView --|> View : 继承
+RegisterView --|> View : 继承
+MainShowView --|> View : 继承
+UploadVideoView --|> View : 继承
+GetFilesView --|> View : 继承
+GetFilesDetailView --|> View : 继承
+GetAnomalyClipsView --|> View : 继承
+DeleteRecordView --|> View : 继承
+DeleteRecordAbnormalView --|> View : 继承
+DeleteFileView --|> View : 继承
+VideoDetailView --|> View : 继承
+GetVideoInfoView --|> View : 继承
+GISVideoView --|> View : 继承
+
+CLIPVAD --|> NeuralNetworkModel : 继承
+AttentionPool2d --|> Layer : 继承
+ResidualAttentionBlock --|> Layer : 继承
+
+User --|> Model : 继承
+Monitor --|> Model : 继承
+SourceVideo --|> Model : 继承
+AbnormalClip --|> Model : 继承
+
+@enduml

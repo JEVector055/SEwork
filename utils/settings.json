@@ -1,0 +1,7 @@
+{
+    "name": "vadClipDB",
+    "user": "mysql_admin",
+    "password": "661120",
+    "host": "localhost",
+    "port": "3306"
+}

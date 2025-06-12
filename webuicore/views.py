@@ -16,11 +16,13 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from openai import OpenAI
 
 from .forms import LoginForm, RegisterForm, UploadUnitform
-from .models import SourceVideo, AbnormalClip, User
-from .save_anomaly_segments import det_anom
+from .models import SourceVideo, AbnormalClip, User, Monitor
+from .save_anomaly_segments.save_anom_segs import det_anom
 
-
+local_prefix = f"{settings.MEDIA_ROOT}\\"
+local_prefix = local_prefix.replace('\\', '/')
 def login_view(request):
+    print(settings.BASE_DIR)
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -48,7 +50,7 @@ def login_view(request):
 def mainshow(request):
     # # 获取所有视频剪辑及其关联的评论
     # VideoClip.objects.all().select_related('comment')
-
+    print("SERVER_PORT:",settings.SERVER_URL)
     # 获取数据库中最新的源视频
     svideo = SourceVideo.objects.last()
 
@@ -61,7 +63,7 @@ def mainshow(request):
         # 如果源视频或视频文件路径不存在，设置video_url为None
         video_url = None
     # 渲染并返回 'webuicore/result.html' 页面
-    return render(request, 'webuicore/result.html', {
+    return render(request, 'webuicore/mainshow.html', {
         'vclips_comments': '',
         'svideo': svideo,
         'video_url': video_url,
@@ -115,8 +117,6 @@ def get_anomaly_clips(request):
         # 正则表达式模式，匹配 http(s)://.../media/
         pattern = r'^https?://[^/]+/media/'
 
-        # 本地路径前缀
-        local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
         # 使用正则表达式进行替换
         video_src = re.sub(pattern, local_prefix, video_url)
         video_src = video_src.replace('/', '\\')
@@ -146,7 +146,7 @@ def get_anomaly_clips(request):
 
 def download_file(request, filename):
     # 假设文件存储在MEDIA_ROOT目录下
-    media_root = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'media')
+    media_root = settings.MEDIA_ROOT
     file_path = os.path.join(media_root, filename)
 
     if os.path.exists(file_path):
@@ -193,15 +193,14 @@ def delete_record(request):
 
 
 def get_video_info(request):
+    print('4')
     video_url = request.GET.get('url')
-
+    print("video_url:",video_url)
     # 正则表达式模式，匹配 http(s)://.../media/
     pattern = r'^https?://[^/]+/media/'
 
-    # 本地路径前缀
-    local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
     # 使用正则表达式进行替换
-    video_src = re.sub(pattern, local_prefix, video_url)
+    video_src = re.sub(pattern,'media/', video_url)
     video_src = video_src.replace('\\', '/')
 
     print('video_src', video_src)
@@ -341,7 +340,7 @@ def uploader(request):
         # 处理GET请求，即用户请求上传表单的情况
         form = UploadUnitform()
         # 渲染上传表单页面
-        return render(request, 'webuicore/mainpage.html', {'form': form})
+        return render(request, 'webuicore/uploader.html', {'form': form})
 
 
 @csrf_exempt
@@ -349,29 +348,29 @@ def exe_vad(request):
     if request.method == 'POST':
         try:
             print('Received POST request', request)
+            print('1\n')
             data = json.loads(request.body.decode('utf-8'))
             video_src = data.get('video_url')
+            print('video_src:', video_src)
             if not video_src:
                 return JsonResponse({'error': 'video_src is required'}, status=400)
-
             # 正则表达式模式，匹配 http(s)://.../media/
             pattern = r'^https?://[^/]+/media/'
-
-            # 本地路径前缀
-            local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
+            print('2\n')
             # 使用正则表达式进行替换
+            print(local_prefix)
             video_src = re.sub(pattern, local_prefix, video_src)
             video_src = video_src.replace('/', '\\')
-
+            print('video_src after regex:', video_src)
             # 查询数据库并打印结果
             source_videos = SourceVideo.objects.filter(save_path=video_src)
-
+            print('source_videos:', source_videos[0].save_path if source_videos.exists() else 'No matching records found')
             if not source_videos.exists():
                 return JsonResponse({'error': 'No matching record found'}, status=404)
 
             # 假设我们取第一个匹配的记录
             source_video_id = source_videos.first().source_id
-
+            print('source_video_id:', source_video_id)
             result = det_anom(video_src, source_video_id=source_video_id)
 
             return JsonResponse(result, safe=False)
@@ -416,20 +415,18 @@ def generate_video_caption(request):
         # 解析 POST 请求体
         data = json.loads(request.body.decode('utf-8'))
         video_path = data.get('video_url')  # 从请求中获取视频路径
-
+        print('video_url:', video_path)
         # 正则表达式模式，匹配 http(s)://.../media/
         pattern = r'^https?://[^/]+/media/'
 
-        # 本地路径前缀
-        local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
         # 使用正则表达式进行替换
-        video_path = re.sub(pattern, local_prefix, video_path)
-        video_path = video_path.replace('/', '\\')
-
+        video_path = re.sub(pattern, 'media/', video_path)
+        print("video_path after regex:", video_path)
         if not video_path or not os.path.exists(video_path):
             return JsonResponse({'success': False, 'error': 'Invalid video path'}, status=400)
+        print("10\n") 
         frame_list = extract_frames(video_path)
-
+        print("11\n")
         if not frame_list:
             return JsonResponse({'success': False, 'error': 'No frames extracted from the video'}, status=400)
         # 编码图像
@@ -491,7 +488,7 @@ def extract_frames(video_path):
     # 获取视频文件名（不带扩展名）
     video_name = os.path.splitext(os.path.basename(video_path))[0]
     # 创建以视频文件名为名称的文件夹
-    output_folder = os.path.join(r'G:\Code\video_management\webui4VadCLIP-develop\media\temp', video_name)
+    output_folder = os.path.join(rf'{settings.MEDIA_ROOT}\temp', video_name)
     os.makedirs(output_folder, exist_ok=True)
 
     cap = cv2.VideoCapture(video_path)
@@ -551,8 +548,6 @@ def popup_page(request):
     # 正则表达式模式，匹配 http(s)://.../media/
     pattern = r'^https?://[^/]+/media/'
 
-    # 本地路径前缀
-    local_prefix = r"G:\\Code\\video_management\\webui4VadCLIP-develop\\media\\"
     # 使用正则表达式进行替换
     video_src = re.sub(pattern, local_prefix, video_url)
     video_src = video_src.replace('/', '\\')
@@ -607,3 +602,67 @@ def modify(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+def gistest(request):
+    
+    import folium
+    
+    center_location=[34.032047,108.760922]
+    # 创建地图对象，设置初始缩放级别
+    m = folium.Map(
+        location=center_location,
+        zoom_start=16,  # 数字越大，缩放级别越高
+        tiles="OpenStreetMap"  # 指定底图类型
+    )
+    monitors = Monitor.objects.filter()
+    if monitors:
+        
+        for monitor in monitors:
+            # 添加标记（Marker）到地图
+            location = [monitor.location_lati,monitor.location_longi]
+            sVidLists=SourceVideo.objects.filter(monitor_id=monitor.monitor_id).values_list('source_id', flat=True)
+            for sVid in sVidLists:
+                aClips=AbnormalClip.objects.filter(source_id=sVid)
+                if aClips:
+                    folium.Marker(
+                        location=location,
+                        popup=monitor.location_name,
+                        tooltip=f"{monitor.location_name}出现异常，首个异常片段时间为{aClips.first().start_time} - {aClips.first().end_time}",
+                        icon=folium.Icon(color="red", icon="info-sign")
+                    ).add_to(m)
+                    # 添加圆形区域（例如：以中心点为圆心，半径 2 公里的范围）
+                    folium.Circle(
+                        location=location,
+                        radius=30,  # 单位：米
+                        color="blue",
+                        fill=True,
+                        fill_color="lightred",
+                        fill_opacity=0.5,
+                        popup="30米半径区域"
+                    ).add_to(m)
+                    break;
+                
+            else:
+                folium.Marker(
+                    location=location,
+                    popup=monitor.location_name,
+                    tooltip=f"{monitor.location_name}正常",
+                    icon=folium.Icon(color="blue", icon="info-sign")
+                ).add_to(m)
+                # 添加圆形区域（例如：以中心点为圆心，半径 2 公里的范围）
+                folium.Circle(
+                    location=location,
+                    radius=30,  # 单位：米
+                    color="green",
+                    fill=True,
+                    fill_color="lightgreen",
+                    fill_opacity=0.5,
+                    popup="30米半径区域"
+                ).add_to(m)
+
+
+
+    # 保存地图为 HTML 文件
+    m.save("D:/COMPLEXPROJECTS/webui4VadCLIP_SE/templates/mainshow/gis_nwpu.html")
+
+    print("地图已保存为 gis_nwpu.html，请用浏览器打开查看")
+    return render(request, 'mainshow/gis_nwpu.html', {})

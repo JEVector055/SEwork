@@ -20,5 +20,6 @@ urlpatterns = [
     path('generate-description/', views.generate_video_caption, name='generate_video_caption'),
     path('abnormal-clips-by-score/<str:threshold>/', views.abnormal_clips_by_score, name='abnormal_clips_by_score'),
     path('video-detail/popup-page.html', views.popup_page, name='popup_page'),
-    path('modify/', views.modify, name='modify')
+    path('modify/', views.modify, name='modify'),
+    path('gistest/', views.gistest, name='gistest')
 ]

@@ -11,8 +11,8 @@ class SourceVideoAdmin(admin.ModelAdmin):
 
 @admin.register(Monitor)
 class MonitorAdmin(admin.ModelAdmin):
-    list_display = ('monitor_id', 'user_id', 'location')
-    search_fields = ('monitor_location',)
+    list_display = ('monitor_id', 'user_id', 'location_name', 'location_longi', 'location_lati')
+    search_fields = ('monitor_id',)
 
 
 @admin.register(AbnormalClip)

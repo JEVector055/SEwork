@@ -11,10 +11,11 @@ from tqdm import tqdm
 from . import clip
 from . import vadclip
 from ..models import SourceVideo, AbnormalClip
-
+#from ...webui4VadCLIP import settings
 # import hyperparams
 # args = hyperparams.parser.parse_args()
-
+#base_dir=rf"{settings.BASE_DIR}"
+#base_dir=base_dir.replace("\\", "/")
 classes_num = 14
 embed_dim = 512
 visual_length = 256
@@ -45,7 +46,7 @@ label_map = {
 prompt_text = vadclip.get_prompt_text(label_map)
 
 
-def det_anom(video_src, source_video_id=1):
+def det_anom(video_src, source_video_id=4):
     cap = cv2.VideoCapture(video_src)
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
@@ -96,7 +97,7 @@ def det_anom(video_src, source_video_id=1):
                             anomaly_end_frame = int(cap.get(cv2.CAP_PROP_POS_FRAMES)) - len(video_frame_list) + j
                             start_time = anomaly_start_frame / fps
                             end_time = anomaly_end_frame / fps
-                            output_dir = f"G:/Code/video_management/webui4VadCLIP-develop/media/AnomalyVideo/anomaly_{start_time:.2f}_{end_time:.2f}.mp4"
+                            output_dir = f"media/AnomalyVideo/anomaly_{start_time:.2f}_{end_time:.2f}.mp4"
                             anomaly_seg_paths.append(output_dir)
                             os.makedirs(os.path.dirname(output_dir), exist_ok=True)
                             save_frames_as_mp4(anomaly_frames, output_dir, fps)

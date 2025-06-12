@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_5b9a07ac931ac315685a0bf33c7a5afb {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+</head>
+<body>
+    
+    
+            <div class="folium-map" id="map_5b9a07ac931ac315685a0bf33c7a5afb" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_5b9a07ac931ac315685a0bf33c7a5afb = L.map(
+                "map_5b9a07ac931ac315685a0bf33c7a5afb",
+                {
+                    center: [34.032047, 108.760922],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 16,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+
+            
+
+        
+    
+            var tile_layer_2f05a2d03e40ac242972cb98d226c516 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_2f05a2d03e40ac242972cb98d226c516.addTo(map_5b9a07ac931ac315685a0bf33c7a5afb);
+        
+    
+            var marker_9c16a7e66fa5721594f0bdc1ec1d1397 = L.marker(
+                [34.03229, 108.76086],
+                {
+}
+            ).addTo(map_5b9a07ac931ac315685a0bf33c7a5afb);
+        
+    
+            var icon_40de8bf43555a7cbe7035308347648a2 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_b1521043f5c572868f8910a475099567 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c580e1026e8928d7188c57f9acb10abc = $(`<div id="html_c580e1026e8928d7188c57f9acb10abc" style="width: 100.0%; height: 100.0%;">图书馆</div>`)[0];
+                popup_b1521043f5c572868f8910a475099567.setContent(html_c580e1026e8928d7188c57f9acb10abc);
+            
+        
+
+        marker_9c16a7e66fa5721594f0bdc1ec1d1397.bindPopup(popup_b1521043f5c572868f8910a475099567)
+        ;
+
+        
+    
+    
+            marker_9c16a7e66fa5721594f0bdc1ec1d1397.bindTooltip(
+                `<div>
+                     图书馆出现异常，首个异常片段时间为2025-06-12 07:42:04.216667+00:00 - 2025-06-12 07:42:06.400000+00:00
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_9c16a7e66fa5721594f0bdc1ec1d1397.setIcon(icon_40de8bf43555a7cbe7035308347648a2);
+            
+    
+            var circle_5b02cee2108dc1a6ad721ae6240e3658 = L.circle(
+                [34.03229, 108.76086],
+                {"bubblingMouseEvents": true, "color": "blue", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "lightred", "fillOpacity": 0.5, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 30, "stroke": true, "weight": 3}
+            ).addTo(map_5b9a07ac931ac315685a0bf33c7a5afb);
+        
+    
+        var popup_b1eced4a90a4437e0684dc0570a2d7fb = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_f4b8600d76540397420e0b07cdcb8296 = $(`<div id="html_f4b8600d76540397420e0b07cdcb8296" style="width: 100.0%; height: 100.0%;">30米半径区域</div>`)[0];
+                popup_b1eced4a90a4437e0684dc0570a2d7fb.setContent(html_f4b8600d76540397420e0b07cdcb8296);
+            
+        
+
+        circle_5b02cee2108dc1a6ad721ae6240e3658.bindPopup(popup_b1eced4a90a4437e0684dc0570a2d7fb)
+        ;
+
+        
+    
+    
+            var marker_22392d048d26689e7aeebc20df5fbcfe = L.marker(
+                [34.036296, 108.757885],
+                {
+}
+            ).addTo(map_5b9a07ac931ac315685a0bf33c7a5afb);
+        
+    
+            var icon_8a8d2f0d48d6ae79d607af76b96525ee = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_7b46e9fa6c2862f663d6241d5b275ce6 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_be7328a795f24e441cd0c8e4b0d153ef = $(`<div id="html_be7328a795f24e441cd0c8e4b0d153ef" style="width: 100.0%; height: 100.0%;">星天苑南餐厅</div>`)[0];
+                popup_7b46e9fa6c2862f663d6241d5b275ce6.setContent(html_be7328a795f24e441cd0c8e4b0d153ef);
+            
+        
+
+        marker_22392d048d26689e7aeebc20df5fbcfe.bindPopup(popup_7b46e9fa6c2862f663d6241d5b275ce6)
+        ;
+
+        
+    
+    
+            marker_22392d048d26689e7aeebc20df5fbcfe.bindTooltip(
+                `<div>
+                     星天苑南餐厅正常
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_22392d048d26689e7aeebc20df5fbcfe.setIcon(icon_8a8d2f0d48d6ae79d607af76b96525ee);
+            
+    
+            var circle_34b89d6d2a9b0a4c45a829756d9b1a82 = L.circle(
+                [34.036296, 108.757885],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "lightgreen", "fillOpacity": 0.5, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 30, "stroke": true, "weight": 3}
+            ).addTo(map_5b9a07ac931ac315685a0bf33c7a5afb);
+        
+    
+        var popup_314e0286535899002cfe4f90b16f5c1a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_3c216fcc6cdbf18cc2d9ecea9838c32a = $(`<div id="html_3c216fcc6cdbf18cc2d9ecea9838c32a" style="width: 100.0%; height: 100.0%;">30米半径区域</div>`)[0];
+                popup_314e0286535899002cfe4f90b16f5c1a.setContent(html_3c216fcc6cdbf18cc2d9ecea9838c32a);
+            
+        
+
+        circle_34b89d6d2a9b0a4c45a829756d9b1a82.bindPopup(popup_314e0286535899002cfe4f90b16f5c1a)
+        ;
+
+        
+    
+    
+            var marker_32b5c16be0bbed29e54b2bb351aed3a5 = L.marker(
+                [34.037098, 108.756358],
+                {
+}
+            ).addTo(map_5b9a07ac931ac315685a0bf33c7a5afb);
+        
+    
+            var icon_aa710791e3d54f8531e5d691f0d4414a = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "blue",
+  "iconColor": "white",
+  "icon": "info-sign",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_536b50bcd7c6542826d740e910623b4a = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_aa81e07502dcc8351c21ad2ac794d889 = $(`<div id="html_aa81e07502dcc8351c21ad2ac794d889" style="width: 100.0%; height: 100.0%;">星天苑D座北</div>`)[0];
+                popup_536b50bcd7c6542826d740e910623b4a.setContent(html_aa81e07502dcc8351c21ad2ac794d889);
+            
+        
+
+        marker_32b5c16be0bbed29e54b2bb351aed3a5.bindPopup(popup_536b50bcd7c6542826d740e910623b4a)
+        ;
+
+        
+    
+    
+            marker_32b5c16be0bbed29e54b2bb351aed3a5.bindTooltip(
+                `<div>
+                     星天苑D座北正常
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_32b5c16be0bbed29e54b2bb351aed3a5.setIcon(icon_aa710791e3d54f8531e5d691f0d4414a);
+            
+    
+            var circle_cfe9a7ca8864603e83864073c04cfb1b = L.circle(
+                [34.037098, 108.756358],
+                {"bubblingMouseEvents": true, "color": "green", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "lightgreen", "fillOpacity": 0.5, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 30, "stroke": true, "weight": 3}
+            ).addTo(map_5b9a07ac931ac315685a0bf33c7a5afb);
+        
+    
+        var popup_af91039538a34d2f66313052d5f5b539 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_c21156b1f2215ffe2c2f01b2ac311e28 = $(`<div id="html_c21156b1f2215ffe2c2f01b2ac311e28" style="width: 100.0%; height: 100.0%;">30米半径区域</div>`)[0];
+                popup_af91039538a34d2f66313052d5f5b539.setContent(html_c21156b1f2215ffe2c2f01b2ac311e28);
+            
+        
+
+        circle_cfe9a7ca8864603e83864073c04cfb1b.bindPopup(popup_af91039538a34d2f66313052d5f5b539)
+        ;
+
+        
+    
+</script>
+</html>

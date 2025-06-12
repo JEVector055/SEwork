@@ -12,10 +12,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 import os
 from pathlib import Path
-
+from utils.weblink import get_ethernet_ip
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+# BASE_DIR_COMPARENT = Path(__file__).parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
@@ -75,9 +75,9 @@ WSGI_APPLICATION = "webui4VadCLIP.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "dbtest3",
-        "USER": "root",
-        "PASSWORD": "2022303145",
+        "NAME": "vadclip_db",
+        "USER": "mysql_admin",
+        "PASSWORD": "661120",
         "HOST": "localhost",
         "PORT": "3306",
         "ATOMIC_REQUEST": False,
@@ -114,5 +114,11 @@ AUTH_USER_MODEL = 'webuicore.User'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-SERVER_URL = 'http://10.129.1.24:8001'
+# OSGEO_VENV = BASE_DIR / 'venv/Lib/site-packages/osgeo/'
+# GEOS_LIBRARY_PATH = str(OSGEO_VENV / 'geos_c.dll') 
+# GDAL_LIBRARY_PATH = str(OSGEO_VENV / 'gdal310.dll')
+# GEOS_LIBRARY_PATH = 'C:\\Users\\Admin\\.conda\\envs\\vadclip\\Lib\\site-packages\\osgeo\\geos_c.dll'
+# GDAL_LIBRARY_PATH = 'C:\\Users\\Admin\\.conda\\envs\\vadclip\\Lib\\site-packages\\osgeo\\gdal.dll'
+# os.environ["PATH"]+= os.pathsep +str(OSGEO_VENV)
+# Define the server URL for the web UI
+SERVER_URL = rf'http://{get_ethernet_ip("未知适配器")}:8000'

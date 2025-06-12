@@ -6,7 +6,7 @@ media/
 .idea/
 .VSCodeCounter/
 probably_NOT_used/
-
+out/
 # 忽略文件
 webuicore/save_anomaly_segments/vadclip/model_ucf.pth
 data/anomaly_mp4/*.mp4

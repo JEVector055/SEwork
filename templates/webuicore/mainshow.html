@@ -444,11 +444,12 @@
 
                         // 将 Windows 路径转换为相对路径（去除磁盘前缀，并替换反斜杠为正斜杠）
                         const videoRelativePath = file
-                            .replace(/^.*media/, 'media')  // 提取相对路径
-                            .replace(/\\/g, '/');  // 替换反斜杠为正斜杠
+                            .replace(/\\/g, '/') // 替换反斜杠为正斜杠
+                            .replace(/^.*media/, 'media');  // 提取相对路径
+
 
                         // 拼接完整的 HTTP URL
-                        const videoUrl = `${serverPath}/${videoRelativePath}`;
+                        const videoUrl = `/${videoRelativePath}`;
                         console.log('videoUrl:', videoUrl);
                         videoPlayer.src = videoUrl;  // 设置为 HTTP 路径
                         videoPlayer.load();  // 重新加载视频
@@ -561,7 +562,7 @@
                                     .replace(/\\/g, '/');  // 替换反斜杠为正斜杠
 
                                 // 拼接完整的 HTTP URL
-                                const videoUrl = `${serverPath}/${videoRelativePath}`;
+                                const videoUrl = `/${videoRelativePath}`;
 
                                 videoPlayer.src = videoUrl;  // 设置为 HTTP 路径
                                 videoPlayer.load();  // 重新加载视频

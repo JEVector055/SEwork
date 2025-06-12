@@ -7,7 +7,7 @@ def linkcursor():
     settingsdict = {}
     try:
         print(f"finding database settings. . .")
-        with open('Settings.json', 'r', encoding='utf-8') as fp:
+        with open('.\\utils\\settings.json', 'r', encoding='utf-8') as fp:
             settingsdict = json.load(fp)
     except Exception as e:
         print(f'Exception occurred:{e},please ensure Settings.json in folder processing.')
@@ -19,7 +19,7 @@ def linkcursor():
             user=settingsdict['user'],
             password=settingsdict['password'],
             database=settingsdict['database'],
-            charset=settingsdict['charset']
+            #charset=settingsdict['charset']
         )
         try:
             cursor = connection.cursor()  # 建立游标
